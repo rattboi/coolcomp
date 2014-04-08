@@ -48,9 +48,13 @@ extern YYSTYPE cool_yylval;
 /*
  * Define names for regular expressions here.
  */
-WHITESPACE      ^[ \n\f\r\t\v]+
+WHITESPACE      [ \n\f\r\t\v]+
+ML_COMM_START   \(\*
+ML_COMM_END     \*\)
 SL_COMMENT      --.*$
 DIGIT           [0-9]+
+TYPEID          [A-Z][A-Za-z0-9_]*
+OBJECTID        [a-z][A-Za-z0-9_]*
 TRUE            true
 FALSE           false
 CLASS           [Cc][Ll][Aa][Ss][Ss]
@@ -78,29 +82,42 @@ RBLOCK          \}
 LPAREN          \(
 RPAREN          \)
 SEMICOLON       ;
+COLON           :
 COMMA           ,
 DOT             \.
+EQUAL           =
+LT              <
+ADD             \+
+SUB             -
+MULT            \*
+DIV             \/
+
 %%
 
 {WHITESPACE}    { }
 
-
-{DIGIT} {
-     cool_yylval.symbol = inttable.add_string(yytext);
-     return (INT_CONST); 
-}
 {LBLOCK}        { return '{'; }
 {RBLOCK}        { return '}'; }
 {LPAREN}        { return '('; }
 {RPAREN}        { return ')'; }
 {SEMICOLON}     { return ';'; }
+{COLON}         { return ':'; }
 {COMMA}         { return ','; }
 {DOT}           { return '.'; }
+{EQUAL}         { return '='; }
+{LT}            { return '<'; }
+{ADD}           { return '+'; }
+{SUB}           { return '-'; }
+{MULT}          { return '*'; }
+{DIV}           { return '/'; }
+
  /*
   *  Nested comments
   */
 
 {SL_COMMENT}    { }
+{ML_COMM_START} { }
+{ML_COMM_END}   { }
 
  /*
   *  The multiple-character operators.
@@ -123,6 +140,7 @@ DOT             \.
 {LOOP}          { return (LOOP); }
 {POOL}          { return (POOL); }
 {THEN}          { return (THEN); }
+{WHILE}         { return (WHILE); }
 {CASE}          { return (CASE); }
 {ESAC}          { return (ESAC); }
 {OF}            { return (OF); }
@@ -137,6 +155,22 @@ DOT             \.
     cool_yylval.boolean = 0;
     return (BOOL_CONST);
 }
+
+{DIGIT} {
+     cool_yylval.symbol = inttable.add_string(yytext);
+     return (INT_CONST); 
+}
+
+{TYPEID} {
+     cool_yylval.symbol = idtable.add_string(yytext);
+     return (TYPEID); 
+}
+
+{OBJECTID} {
+     cool_yylval.symbol = idtable.add_string(yytext);
+     return (OBJECTID); 
+}
+
  /*
   *  String constants (C syntax)
   *  Escape sequence \c is accepted for all characters c. Except for
