@@ -48,30 +48,98 @@ extern YYSTYPE cool_yylval;
 /*
  * Define names for regular expressions here.
  */
-
+WHITESPACE      ^[ \n\f\r\t\v]+
+SL_COMMENT      --.*$
+DIGIT           [0-9]+
+TRUE            true
+FALSE           false
+CLASS           [Cc][Ll][Aa][Ss][Ss]
+ELSE            [Ee][Ll][Ss][Ee]
+FI              [Ff][Ii]
+IF              [Ii][Ff]
+IN              [Ii][Nn]
+INHERITS        [Ii][Nn][Hh][Ee][Rr][Ii][Tt][Ss]
+LET             [Ll][Ee][Tt]
+LOOP            [Ll][Oo][Oo][Pp]
+POOL            [Pp][Oo][Oo][Ll]
+THEN            [Tt][Hh][Ee][Nn]
+WHILE           [Ww][Hh][Ii][Ll][Ee]
+CASE            [Cc][Aa][Ss][Ee]
+ESAC            [Ee][Ss][Aa][Cc]
+OF              [Oo][Ff]
 DARROW          =>
-
+NEW             [Nn][Ee][Ww]
+ISVOID          [Ii][Ss][Vv][Oo][Ii][Dd]
+ASSIGN          <-
+NOT             [Nn][Oo][Tt]
+LE              <=
+LBLOCK          \{
+RBLOCK          \}
+LPAREN          \(
+RPAREN          \)
+SEMICOLON       ;
+COMMA           ,
+DOT             \.
 %%
 
+{WHITESPACE}    { }
+
+
+{DIGIT} {
+     cool_yylval.symbol = inttable.add_string(yytext);
+     return (INT_CONST); 
+}
+{LBLOCK}        { return '{'; }
+{RBLOCK}        { return '}'; }
+{LPAREN}        { return '('; }
+{RPAREN}        { return ')'; }
+{SEMICOLON}     { return ';'; }
+{COMMA}         { return ','; }
+{DOT}           { return '.'; }
  /*
   *  Nested comments
   */
 
+{SL_COMMENT}    { }
 
  /*
   *  The multiple-character operators.
   */
 {DARROW}		{ return (DARROW); }
+{ASSIGN}        { return (ASSIGN); }
+{LE}            { return (LE); }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
-
-
+{CLASS}         { return (CLASS); }
+{ELSE}          { return (ELSE); }
+{FI}            { return (FI); }
+{IF}            { return (IF); }
+{IN}            { return (IN); }
+{INHERITS}      { return (INHERITS); }
+{LET}           { return (LET); }
+{LOOP}          { return (LOOP); }
+{POOL}          { return (POOL); }
+{THEN}          { return (THEN); }
+{CASE}          { return (CASE); }
+{ESAC}          { return (ESAC); }
+{OF}            { return (OF); }
+{NEW}           { return (NEW); }
+{ISVOID}		{ return (ISVOID); }
+{NOT}           { return (NOT); }
+{TRUE} { 
+    cool_yylval.boolean = 1;
+    return (BOOL_CONST);
+}
+{FALSE} { 
+    cool_yylval.boolean = 0;
+    return (BOOL_CONST);
+}
  /*
   *  String constants (C syntax)
-  *  Escape sequence \c is accepted for all characters c. Except for 
+  *  Escape sequence \c is accepted for all characters c. Except for
   *  \n \t \b \f, the result is c.
   *
   */
