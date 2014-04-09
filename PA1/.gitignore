@@ -3,3 +3,5 @@ semant
 cgen
 parser
 lexer
+grading/
+pa1-grading.pl
