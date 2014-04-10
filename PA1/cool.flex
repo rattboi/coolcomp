@@ -45,6 +45,17 @@ extern YYSTYPE cool_yylval;
 
 int nest_comm_level = 0;
 bool string_contains_null = false;
+int str_length = 0;
+
+void reset_str_buffer() {
+    str_length = 0;
+    string_buf_ptr = string_buf;
+}
+
+void add_to_str(char c) {
+    str_length++;
+    *string_buf_ptr++ = c;
+}
 
 %}
 
@@ -129,11 +140,11 @@ QUOTE           \"
        return (ERROR);
     } 
     \n curr_lineno++;
-    . {}
+    . { }
 }
 
 <sl_comment>{
-    [^\n]* 
+    [^\n]*  { }
     \n {
         curr_lineno++;
         if (nest_comm_level > 0)
@@ -145,11 +156,8 @@ QUOTE           \"
 
 <INITIAL>{
     {SL_COMMENT} BEGIN(sl_comment);
-    {ML_COMM_END} { 
-        yylval.error_msg = "Unmatched *)";
-        return (ERROR);
-    }
 }
+
  /*
   *  The multiple-character operators.
   */
@@ -209,17 +217,17 @@ QUOTE           \"
   *
   */
 
-{QUOTE} { string_buf_ptr = string_buf; BEGIN(string); }
+{QUOTE} { reset_str_buffer(); BEGIN(string); }
 <string>{
     \0   string_contains_null = true;
     \\\0 string_contains_null = true;
-    \\n  *string_buf_ptr++ = '\n';
-    \\t  *string_buf_ptr++ = '\t';
-    \\b  *string_buf_ptr++ = '\b';
-    \\f  *string_buf_ptr++ = '\f';  
-    \\\n curr_lineno++; *string_buf_ptr++ = '\n';
-    \\\\ *string_buf_ptr++ = '\\';
-    \\.  yytext++; *string_buf_ptr++ = *yytext;
+    \\n  add_to_str('\n');
+    \\t  add_to_str('\t');
+    \\b  add_to_str('\b');
+    \\f  add_to_str('\f');
+    \\\n add_to_str('\n'); curr_lineno++;
+    \\\\ add_to_str('\\');
+    \\.  add_to_str(*(++yytext));
     {QUOTE} { 
         BEGIN(INITIAL); 
         if (string_contains_null) {
@@ -227,27 +235,32 @@ QUOTE           \"
             yylval.error_msg = "String contains null character";
             return (ERROR);
         }
+
+        if (str_length >= MAX_STR_CONST) {
+            yylval.error_msg = "String contains too long";
+            return (ERROR);
+        }
         
-        *string_buf_ptr = '\0';
+        add_to_str('\0');
         cool_yylval.symbol = stringtable.add_string(string_buf);
         return (STR_CONST);
     }
     \n {
-        yylval.error_msg = "Unterminated string constant";
         curr_lineno++;
         BEGIN(INITIAL);
+        yylval.error_msg = "Unterminated string constant";
         return (ERROR);
     }
     <<EOF>> {
-       yylval.error_msg = "EOF in string constant";
        BEGIN(INITIAL);
+       yylval.error_msg = "EOF in string constant";
        return (ERROR);
     }
     [^\\\n\"\0]+ { 
        char *yptr = yytext;
                  
        while ( *yptr )
-       *string_buf_ptr++ = *yptr++;
+           add_to_str(*yptr++);
     }
 }
 
