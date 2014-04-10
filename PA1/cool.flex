@@ -212,11 +212,12 @@ QUOTE           \"
 {QUOTE} { string_buf_ptr = string_buf; BEGIN(string); }
 <string>{
     \0   string_contains_null = true;
+    \\\0 string_contains_null = true;
     \\n  *string_buf_ptr++ = '\n';
     \\t  *string_buf_ptr++ = '\t';
     \\b  *string_buf_ptr++ = '\b';
     \\f  *string_buf_ptr++ = '\f';  
-    \\\n { curr_lineno++; *string_buf_ptr++ = '\n'; }
+    \\\n curr_lineno++; *string_buf_ptr++ = '\n';
     \\\\ *string_buf_ptr++ = '\\';
     \\.  yytext++; *string_buf_ptr++ = *yytext;
     {QUOTE} { 
