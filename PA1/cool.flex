@@ -57,6 +57,10 @@ void add_to_str(char c) {
     *string_buf_ptr++ = c;
 }
 
+int tokenize_error(char* error_msg) {
+    yylval.error_msg = error_msg;
+    return (ERROR);
+}
 %}
 
 /*
@@ -125,10 +129,8 @@ QUOTE           \"
         nest_comm_level++;
     }
     {ML_COMM_END} { 
-        if (!nest_comm_level) {
-            yylval.error_msg = "Close comment parentheses didn't match open parentheses";
-            return (ERROR);
-        }
+        if (!nest_comm_level) 
+            return tokenize_error("Close comment parentheses didn't match open parentheses");
         nest_comm_level--;
         if (nest_comm_level == 0) BEGIN(INITIAL);
     }
@@ -137,8 +139,7 @@ QUOTE           \"
 <ml_comment>{
     <<EOF>> {
        BEGIN(INITIAL);
-       yylval.error_msg = "EOF in comment";
-       return (ERROR);
+       return tokenize_error("EOF in comment");
     } 
     \n curr_lineno++;
     . { }
@@ -230,14 +231,11 @@ QUOTE           \"
         BEGIN(INITIAL); 
         if (string_contains_null) {
             string_contains_null = false;
-            yylval.error_msg = "String contains null character";
-            return (ERROR);
+            return tokenize_error("String contains null character");
         }
 
-        if (str_length >= MAX_STR_CONST) {
-            yylval.error_msg = "String contains too long";
-            return (ERROR);
-        }
+        if (str_length >= MAX_STR_CONST) 
+            return tokenize_error("String contents too long");
         
         add_to_str('\0');
         cool_yylval.symbol = stringtable.add_string(string_buf);
@@ -246,13 +244,11 @@ QUOTE           \"
     \n {
         BEGIN(INITIAL);
         curr_lineno++;
-        yylval.error_msg = "Unterminated string constant";
-        return (ERROR);
+        return tokenize_error("Unterminated string constant");
     }
     <<EOF>> {
        BEGIN(INITIAL);
-       yylval.error_msg = "EOF in string constant";
-       return (ERROR);
+       return tokenize_error("EOF in string constant");
     }
     [^\\\n\"\0]+ { 
        char *yptr = yytext;
@@ -283,7 +279,6 @@ QUOTE           \"
 
 . { char* invalid = new char[2];
     strcpy(invalid, yytext);
-    cool_yylval.error_msg = invalid; 
-    return (ERROR);
+    return tokenize_error(invalid);
   }
 %%
