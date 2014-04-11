@@ -129,14 +129,15 @@ QUOTE           \"
             yylval.error_msg = "Close comment parentheses didn't match open parentheses";
             return (ERROR);
         }
-        if (--nest_comm_level == 0) BEGIN(INITIAL);
+        nest_comm_level--;
+        if (nest_comm_level == 0) BEGIN(INITIAL);
     }
 }
 
 <ml_comment>{
     <<EOF>> {
-       yylval.error_msg = "EOF in comment";
        BEGIN(INITIAL);
+       yylval.error_msg = "EOF in comment";
        return (ERROR);
     } 
     \n curr_lineno++;
@@ -146,11 +147,8 @@ QUOTE           \"
 <sl_comment>{
     [^\n]*  { }
     \n {
+        BEGIN(INITIAL);
         curr_lineno++;
-        if (nest_comm_level > 0)
-            BEGIN(ml_comment);
-        else
-            BEGIN(INITIAL);
     }
 }
 
@@ -217,7 +215,7 @@ QUOTE           \"
   *
   */
 
-{QUOTE} { reset_str_buffer(); BEGIN(string); }
+{QUOTE} { BEGIN(string); reset_str_buffer(); }
 <string>{
     \0   string_contains_null = true;
     \\\0 string_contains_null = true;
@@ -246,8 +244,8 @@ QUOTE           \"
         return (STR_CONST);
     }
     \n {
-        curr_lineno++;
         BEGIN(INITIAL);
+        curr_lineno++;
         yylval.error_msg = "Unterminated string constant";
         return (ERROR);
     }
