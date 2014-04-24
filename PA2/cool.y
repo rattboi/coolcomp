@@ -135,7 +135,14 @@
     %type <class_> class
 
     /* You will want to change the following line. */
-    %type <features> dummy_feature_list
+    %type <features>    feature_list
+    %type <feature>     feature
+    %type <formals>     formal_list
+    %type <formal>      formal
+    %type <case_>       case
+    %type <cases>       case_list
+    %type <expressions> expr_list
+    %type <expression>  expr
 
     /* Precedence declarations go here. */
 
@@ -157,17 +164,69 @@
     ;
 
     /* If no parent is specified, the class inherits from the Object class. */
-    class	: CLASS TYPEID '{' dummy_feature_list '}' ';'
-    { $$ = class_($2,idtable.add_string("Object"),$4,
-    stringtable.add_string(curr_filename)); }
-    | CLASS TYPEID INHERITS TYPEID '{' dummy_feature_list '}' ';'
+    class
+    : CLASS TYPEID '{' feature_list '}' ';'
+    { $$ = class_($2,idtable.add_string("Object"),$4, stringtable.add_string(curr_filename)); }
+    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
     ;
 
     /* Feature list may be empty, but no empty features in list. */
-    dummy_feature_list:		/* empty */
-    {  $$ = nil_Features(); }
+    feature_list
+    : feature ';'
+    {  $$ = single_Features($1); }
+    | feature_list feature ';'
+    {  $$ = append_Features($1,single_Features($2)); }
+    ;
 
+    feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+    {  $$ = method($1,$3,$6,$8); }
+    | OBJECTID ':' TYPEID ASSIGN expr 
+    {  $$ = attr($1,$3,$5); }
+    ;
+
+    formal_list:
+    {  $$ = nil_Formals(); }
+    | formal
+    {  $$ = single_Formals($1); }
+    | formal_list formal
+    {  $$ = append_Formals($1,single_Formals($2)); }
+    ;
+
+    formal: OBJECTID ':' TYPEID
+    {  $$ = formal($1,$3); }
+    ;
+
+    expr_list:
+    {  $$ = nil_Expressions(); }
+    | expr
+    {  $$ = single_Expressions($1); }
+    | expr_list expr
+    {  $$ = append_Expressions($1,single_Expressions($2)); }
+    ;
+
+    expr
+    : OBJECTID ASSIGN expr
+    {  $$ = assign($1,$3); }
+    | CASE expr OF case_list ESAC
+    {  $$ = typcase($2,$4); }
+    | '{' expr_list '}'
+    {  $$ = block($2); }
+    | '(' expr ')'
+    {  $$ = $2; }
+    ;
+
+    case_list
+    : case
+    {  $$ = single_Cases($1); }
+    | case_list case
+    {  $$ = append_Cases($1,single_Cases($2)); }
+    ;
+
+    case
+    : OBJECTID ':' TYPEID DARROW expr ';'
+    {  $$ = branch($1,$3,$5); }
+    ;
 
     /* end of grammar */
     %%
