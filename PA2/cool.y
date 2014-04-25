@@ -229,6 +229,10 @@
     {  $$ = assign($1,$3); }
     | expr '.' OBJECTID '(' arg_list ')'
     {  $$ = dispatch($1,$3,$5); }
+    | OBJECTID '(' arg_list ')'
+    {  $$ = dispatch(object(idtable.add_string("self")),$1,$3); }
+    | expr '@' TYPEID '.' OBJECTID '(' arg_list ')'
+    {  $$ = static_dispatch($1,$3,$5,$7); }
     | IF expr THEN expr ELSE expr FI
     {  $$ = cond($2,$4,$6); }
     | WHILE expr LOOP expr POOL
