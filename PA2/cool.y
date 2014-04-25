@@ -144,7 +144,6 @@
     %type <expressions> expr_list
     %type <expression>  expr
     %type <expressions> arg_list
-    %type <expressions> arg_list_more
 
     /* Precedence declarations go here. */
 
@@ -209,14 +208,11 @@
 
     arg_list:
     {  $$ = nil_Expressions(); }
-    | expr arg_list_more
-    {  $$ = append_Expressions($2,single_Expressions($1)); }
+    | expr
+    {  $$ = single_Expressions($1); }
+    | arg_list ',' expr
+    {  $$ = append_Expressions($1,single_Expressions($3)); }
     ;
-
-    arg_list_more:
-    {  $$ = nil_Expressions(); }
-    | ',' expr arg_list_more
-    {  $$ = append_Expressions($3,single_Expressions($2)); }
 
     expr_list:
     {  $$ = nil_Expressions(); }
