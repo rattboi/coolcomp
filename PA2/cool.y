@@ -144,15 +144,19 @@
     %type <expressions> expr_list
     %type <expression>  expr
     %type <expressions> arg_list
+    %type <expression>  opt_assign    
 
     /* Precedence declarations go here. */
 
-    %left '*' '/'
-    %left '+' '-'
+    %right ASSIGN
     %left NOT
+    %nonassoc LE '<' '='
+    %left '+' '-'
+    %left '*' '/'
     %left ISVOID
     %left '~'
-    %nonassoc LE '<' '='
+    %left '@' 
+    %left '.' 
 
     %%
     /*
@@ -162,28 +166,35 @@
     ;
 
     class_list
-    : class			/* single class */
+    : class	';'		/* single class */
     { $$ = single_Classes($1);
     parse_results = $$; }
-    | class_list class	/* several classes */
+    | class_list class ';'	/* several classes */
     { $$ = append_Classes($1,single_Classes($2));
     parse_results = $$; }
+    | error '}' ';'
+    { yyerrok; }
     ;
 
     /* If no parent is specified, the class inherits from the Object class. */
     class
-    : CLASS TYPEID '{' feature_list '}' ';'
+    : CLASS TYPEID '{' feature_list '}' 
     { $$ = class_($2,idtable.add_string("Object"),$4, stringtable.add_string(curr_filename)); }
-    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
+    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' 
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
     ;
 
     /* Feature list may be empty, but no empty features in list. */
-    feature_list
-    : feature ';'
+    feature_list:
+    {  $$ = nil_Features(); }
+    | feature ';'
     {  $$ = single_Features($1); }
     | feature_list feature ';'
     {  $$ = append_Features($1,single_Features($2)); }
+    | error ';'
+    { yyerrok; }
+    | error '}' ';'
+    { yyerrok; }
     ;
 
     feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
@@ -218,8 +229,18 @@
     {  $$ = nil_Expressions(); }
     | expr_list expr ';'
     {  $$ = append_Expressions($1,single_Expressions($2)); }
+    | error ';'
+    { yyerrok; }
+    | error '}'
+    { yyerrok; }
     ;
 
+    opt_assign:
+    { $$ = no_expr(); }
+    | ASSIGN expr
+    { $$ = $2; }
+    ;
+    
     expr
     : OBJECTID ASSIGN expr
     {  $$ = assign($1,$3); }
@@ -235,6 +256,8 @@
     {  $$ = loop($2,$4); }
     | '{' expr_list '}'
     {  $$ = block($2); }
+    | LET OBJECTID ':' TYPEID opt_assign IN expr
+    {  $$ = let($2,$4,$5,$7); }
     | CASE expr OF case_list ESAC
     {  $$ = typcase($2,$4); }
     | NEW TYPEID
