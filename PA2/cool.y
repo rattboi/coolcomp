@@ -143,9 +143,17 @@
     %type <cases>       case_list
     %type <expressions> expr_list
     %type <expression>  expr
+    %type <expressions> arg_list
+    %type <expressions> arg_list_more
 
     /* Precedence declarations go here. */
 
+    %left '*' '/'
+    %left '+' '-'
+    %left NOT
+    %left ISVOID
+    %left '~'
+    %nonassoc LE '<' '='
 
     %%
     /*
@@ -181,43 +189,90 @@
 
     feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
     {  $$ = method($1,$3,$6,$8); }
-    | OBJECTID ':' TYPEID ASSIGN expr 
+    | OBJECTID ':' TYPEID ASSIGN expr
     {  $$ = attr($1,$3,$5); }
+    | OBJECTID ':' TYPEID 
+    {  $$ = attr($1,$3,no_expr()); }
     ;
 
     formal_list:
     {  $$ = nil_Formals(); }
     | formal
     {  $$ = single_Formals($1); }
-    | formal_list formal
-    {  $$ = append_Formals($1,single_Formals($2)); }
+    | formal_list ',' formal
+    {  $$ = append_Formals($1,single_Formals($3)); }
     ;
 
     formal: OBJECTID ':' TYPEID
     {  $$ = formal($1,$3); }
     ;
 
+    arg_list:
+    {  $$ = nil_Expressions(); }
+    | expr arg_list_more
+    {  $$ = append_Expressions($2,single_Expressions($1)); }
+    ;
+
+    arg_list_more:
+    {  $$ = nil_Expressions(); }
+    | ',' expr arg_list_more
+    {  $$ = append_Expressions($3,single_Expressions($2)); }
+
     expr_list:
     {  $$ = nil_Expressions(); }
-    | expr
-    {  $$ = single_Expressions($1); }
-    | expr_list expr
+    | expr_list expr ';'
     {  $$ = append_Expressions($1,single_Expressions($2)); }
     ;
 
     expr
     : OBJECTID ASSIGN expr
     {  $$ = assign($1,$3); }
-    | CASE expr OF case_list ESAC
-    {  $$ = typcase($2,$4); }
+    | expr '.' OBJECTID '(' arg_list ')'
+    {  $$ = dispatch($1,$3,$5); }
+    | IF expr THEN expr ELSE expr FI
+    {  $$ = cond($2,$4,$6); }
+    | WHILE expr LOOP expr POOL
+    {  $$ = loop($2,$4); }
     | '{' expr_list '}'
     {  $$ = block($2); }
+    | CASE expr OF case_list ESAC
+    {  $$ = typcase($2,$4); }
+    | NEW TYPEID
+    {  $$ = new_($2); }
+    | ISVOID expr
+    {  $$ = isvoid($2); }
+    | expr '+' expr
+    {  $$ = plus($1,$3); }
+    | expr '-' expr
+    {  $$ = sub($1,$3); }
+    | expr '*' expr
+    {  $$ = mul($1,$3); }
+    | expr '/' expr
+    {  $$ = divide($1,$3); }
+    | '~' expr
+    {  $$ = neg($2); }
+    | expr '<' expr
+    {  $$ = lt($1,$3); }
+    | expr LE expr
+    {  $$ = leq($1,$3); }
+    | expr '=' expr
+    {  $$ = eq($1,$3); }
+    | NOT expr
+    {  $$ = comp($2); }
     | '(' expr ')'
     {  $$ = $2; }
+    | OBJECTID
+    {  $$ = object($1); }
+    | INT_CONST
+    {  $$ = int_const($1); }
+    | STR_CONST
+    {  $$ = string_const($1); }
+    | BOOL_CONST
+    {  $$ = bool_const($1); }
     ;
 
     case_list
-    : case
+    : case 
     {  $$ = single_Cases($1); }
     | case_list case
     {  $$ = append_Cases($1,single_Cases($2)); }
