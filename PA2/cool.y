@@ -144,7 +144,6 @@
     %type <expressions> expr_list
     %type <expression>  expr
     %type <expressions> arg_list
-    %type <expression>  opt_assign    
     %type <expression>  let_more
 
     /* Precedence declarations go here. */
@@ -196,8 +195,10 @@
 
     feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' ';'
     {  $$ = method($1,$3,$6,$8); }
-    | OBJECTID ':' TYPEID opt_assign ';'
-    {  $$ = attr($1,$3,$4); }
+    | OBJECTID ':' TYPEID ';'
+    {  $$ = attr($1,$3,no_expr()); }
+    | OBJECTID ':' TYPEID ASSIGN expr ';'
+    {  $$ = attr($1,$3,$5); }
     | error '}' ';'
     { yyerrok; }
     | error ';'
@@ -250,17 +251,16 @@
     { yyerrok; }
     ;
 
-    opt_assign:
-    { $$ = no_expr(); }
-    | ASSIGN expr
-    { $$ = $2; }
-    ;
-
     let_more
-    : OBJECTID ':' TYPEID opt_assign IN expr
-    {  $$ = let($1,$3,$4,$6); }
-    | OBJECTID ':' TYPEID opt_assign ',' let_more
-    {  $$ = let($1,$3,$4,$6); }
+    : OBJECTID ':' TYPEID IN expr
+    {  $$ = let($1,$3,no_expr(),$5); }
+    | OBJECTID ':' TYPEID ASSIGN expr IN expr
+    {  $$ = let($1,$3,$5,$7); }
+    | OBJECTID ':' TYPEID ',' let_more
+    {  $$ = let($1,$3,no_expr(),$5); }
+    | OBJECTID ':' TYPEID ASSIGN expr ',' let_more
+    {  $$ = let($1,$3,$5,$7); }
+    ;
 
     expr
     : OBJECTID ASSIGN expr
