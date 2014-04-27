@@ -264,6 +264,8 @@
     {  $$ = dispatch($1,$3,$5); }
     | OBJECTID '(' arg_list ')'
     {  $$ = dispatch(object(idtable.add_string("self")),$1,$3); }
+    | OBJECTID '(' error ')'
+    {  yyerrok; } 
     | expr '@' TYPEID '.' OBJECTID '(' arg_list ')'
     {  $$ = static_dispatch($1,$3,$5,$7); }
     | IF expr THEN expr ELSE expr FI
