@@ -172,7 +172,7 @@
     | class_list class ';'	/* several classes */
     { $$ = append_Classes($1,single_Classes($2));
     parse_results = $$; }
-    | error '}' ';'
+    | error class ';'
     { yyerrok; }
     ;
 
@@ -187,22 +187,22 @@
     /* Feature list may be empty, but no empty features in list. */
     feature_list:
     {  $$ = nil_Features(); }
-    | feature ';'
+    | feature 
     {  $$ = single_Features($1); }
-    | feature_list feature ';'
+    | feature_list feature 
     {  $$ = append_Features($1,single_Features($2)); }
-    | error ';'
-    { yyerrok; }
-    | error '}' ';'
-    { yyerrok; }
     ;
 
-    feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+    feature: OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' ';'
     {  $$ = method($1,$3,$6,$8); }
-    | OBJECTID ':' TYPEID ASSIGN expr
+    | OBJECTID ':' TYPEID ASSIGN expr ';'
     {  $$ = attr($1,$3,$5); }
-    | OBJECTID ':' TYPEID 
+    | OBJECTID ':' TYPEID  ';'
     {  $$ = attr($1,$3,no_expr()); }
+    | error '}' ';'
+    { yyerrok; }
+    | error ';'
+    { yyerrok; }
     ;
 
     formal_list:
@@ -225,6 +225,28 @@
     {  $$ = append_Expressions($1,single_Expressions($3)); }
     ;
 
+    opt_assign:
+    { $$ = no_expr(); }
+    | ASSIGN expr
+    { $$ = $2; }
+    ;
+
+    case_list
+    : case 
+    {  $$ = single_Cases($1); }
+    | case_list case
+    {  $$ = append_Cases($1,single_Cases($2)); }
+    | error ';'
+    { yyerrok; }
+    ;
+
+    case
+    : OBJECTID ':' TYPEID DARROW expr ';'
+    {  $$ = branch($1,$3,$5); }
+    | error ';'
+    { yyerrok; }
+    ;
+    
     expr_list:
     {  $$ = nil_Expressions(); }
     | expr_list expr ';'
@@ -235,12 +257,6 @@
     { yyerrok; }
     ;
 
-    opt_assign:
-    { $$ = no_expr(); }
-    | ASSIGN expr
-    { $$ = $2; }
-    ;
-    
     expr
     : OBJECTID ASSIGN expr
     {  $$ = assign($1,$3); }
@@ -260,6 +276,8 @@
     {  $$ = let($2,$4,$5,$7); }
     | CASE expr OF case_list ESAC
     {  $$ = typcase($2,$4); }
+    | CASE error OF case_list ESAC
+    {  yyerrok; }
     | NEW TYPEID
     {  $$ = new_($2); }
     | ISVOID expr
@@ -294,17 +312,6 @@
     {  $$ = bool_const($1); }
     ;
 
-    case_list
-    : case 
-    {  $$ = single_Cases($1); }
-    | case_list case
-    {  $$ = append_Cases($1,single_Cases($2)); }
-    ;
-
-    case
-    : OBJECTID ':' TYPEID DARROW expr ';'
-    {  $$ = branch($1,$3,$5); }
-    ;
 
     /* end of grammar */
     %%
