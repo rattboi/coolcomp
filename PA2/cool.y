@@ -144,7 +144,9 @@
     %type <expressions> expr_list
     %type <expression>  expr
     %type <expressions> arg_list
+    %type <expressions> arg_list_more
     %type <expression>  let_more
+    %type <expression>  case_expr
 
     /* Precedence declarations go here. */
 
@@ -215,13 +217,19 @@
     {  $$ = formal($1,$3); }
     ;
 
-    arg_list:
+    arg_list
+    : arg_list_more ')'
+    {  $$ = $1; }
+    | error ')'
+    { yyerrok; }
+    ;
+
+    arg_list_more: 
     {  $$ = nil_Expressions(); }
     | expr
     {  $$ = single_Expressions($1); }
-    | arg_list ',' expr
+    | arg_list_more ',' expr
     {  $$ = append_Expressions($1,single_Expressions($3)); }
-    ;
 
     case_list
     : case 
@@ -234,6 +242,12 @@
     : OBJECTID ':' TYPEID DARROW expr ';'
     {  $$ = branch($1,$3,$5); }
     ;
+
+    case_expr
+    : expr
+    { $$ = $1; }
+    | error
+    { yyerrok; }
     
     expr_list
     : expr ';'
@@ -262,13 +276,11 @@
     expr
     : OBJECTID ASSIGN expr
     {  $$ = assign($1,$3); }
-    | expr '.' OBJECTID '(' arg_list ')'
+    | expr '.' OBJECTID '(' arg_list 
     {  $$ = dispatch($1,$3,$5); }
-    | OBJECTID '(' arg_list ')'
+    | OBJECTID '(' arg_list 
     {  $$ = dispatch(object(idtable.add_string("self")),$1,$3); }
-    | OBJECTID '(' error ')'
-    {  yyerrok; } 
-    | expr '@' TYPEID '.' OBJECTID '(' arg_list ')'
+    | expr '@' TYPEID '.' OBJECTID '(' arg_list 
     {  $$ = static_dispatch($1,$3,$5,$7); }
     | IF expr THEN expr ELSE expr FI
     {  $$ = cond($2,$4,$6); }
@@ -278,10 +290,8 @@
     {  $$ = block($2); }
     | LET let_more
     {  $$ = $2; }
-    | CASE expr OF case_list ESAC
+    | CASE case_expr OF case_list ESAC
     {  $$ = typcase($2,$4); }
-    | CASE error OF case_list ESAC
-    {  yyerrok; }
     | NEW TYPEID
     {  $$ = new_($2); }
     | ISVOID expr
