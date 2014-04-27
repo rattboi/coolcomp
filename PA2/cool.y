@@ -199,8 +199,6 @@
     {  $$ = attr($1,$3,no_expr()); }
     | OBJECTID ':' TYPEID ASSIGN expr ';'
     {  $$ = attr($1,$3,$5); }
-    | error '}' ';'
-    { yyerrok; }
     | error ';'
     { yyerrok; }
     ;
@@ -230,24 +228,19 @@
     {  $$ = single_Cases($1); }
     | case_list case
     {  $$ = append_Cases($1,single_Cases($2)); }
-    | error ';'
-    { yyerrok; }
     ;
 
     case
     : OBJECTID ':' TYPEID DARROW expr ';'
     {  $$ = branch($1,$3,$5); }
-    | error ';'
-    { yyerrok; }
     ;
     
-    expr_list:
-    {  $$ = nil_Expressions(); }
+    expr_list
+    : expr ';'
+    {  $$ = single_Expressions($1); }
     | expr_list expr ';'
     {  $$ = append_Expressions($1,single_Expressions($2)); }
     | error ';'
-    { yyerrok; }
-    | error '}'
     { yyerrok; }
     ;
 
@@ -260,6 +253,10 @@
     {  $$ = let($1,$3,no_expr(),$5); }
     | OBJECTID ':' TYPEID ASSIGN expr ',' let_more
     {  $$ = let($1,$3,$5,$7); }
+    | error IN expr
+    { yyerrok; } 
+    | error ',' let_more
+    { yyerrok; } 
     ;
 
     expr
