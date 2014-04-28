@@ -1,0 +1,7 @@
+semant
+cgen
+parser
+lexer
+grading/
+pa3-grading.pl
+*.output
