@@ -2,6 +2,7 @@ semant
 cgen
 parser
 lexer
+symtab_example
 grading/
 pa3-grading.pl
 *.output
