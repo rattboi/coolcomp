@@ -85,7 +85,48 @@ static void initialize_constants(void)
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
-    /* Fill this in */
+    install_basic_classes();
+
+    std::map<Symbol,Class_> classLookup;
+    std::map<Class_,std::set<Class_> > inheritanceSet;
+    
+    // check for duplicate classes in class tree
+    for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+        Class_ n = classes->nth(i);
+
+        Symbol filename = n->get_filename();
+        Symbol name = n->get_name();
+        Symbol parent = n->get_parent();
+
+        error_stream << "Filename: " << filename << endl;
+        error_stream << "Sym Name: " << name << endl;
+        error_stream << "Parent  : " << parent << endl;
+
+        if (name == Bool || name == Int || name == IO || name == Object || name == SELF_TYPE || name == Str)
+            semant_error(filename, n);
+
+        if (parent == Bool || parent == Int || parent == SELF_TYPE || parent == Str)
+            semant_error(filename, n);
+
+        if (classLookup.count(name))
+            // already in set, duplicate
+            semant_error(filename, n);
+        else
+            classLookup.insert(std::make_pair(name,n));
+    }
+
+    for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+        Class_ n = classes->nth(i);
+        Symbol parent = n->get_parent();
+        Symbol filename = n->get_filename();
+
+        if (parent != Object && parent != IO && !classLookup.count(parent))
+            // inherits from undefined parent
+            semant_error(filename, n);
+        else
+            // add decendant to parent's inheritanceSet
+            inheritanceSet[classLookup[parent]].insert(n);
+    }
 
 }
 

@@ -56,6 +56,8 @@ void dump_with_types(ostream&, int);
 
 #define Class__EXTRAS                   \
 virtual Symbol get_filename() = 0;      \
+virtual Symbol get_name() = 0;      \
+virtual Symbol get_parent() = 0;      \
 virtual void dump_with_types(ostream&,int) = 0; 
 
 

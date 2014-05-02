@@ -168,6 +168,8 @@ public:
 #ifdef class__EXTRAS
    class__EXTRAS
 #endif
+   Symbol get_name()   { return name; }
+   Symbol get_parent() { return parent; }
 };
 
 
