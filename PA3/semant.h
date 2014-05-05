@@ -29,10 +29,17 @@ private:
 
 public:
   ClassTable(Classes);
+
+  void dumpInheritance();
+  void testForCycles(Class_ parent, std::set<Class_> mark_set, int depth);
+
   int errors() { return semant_errors; }
   ostream& semant_error();
   ostream& semant_error(Class_ c);
   ostream& semant_error(Symbol filename, tree_node *t);
+
+  std::map<Symbol,Class_> class_lookup;
+  std::map<Class_,std::set<Class_> > inheritance_set;
 };
 
 

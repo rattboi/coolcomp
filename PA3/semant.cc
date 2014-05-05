@@ -81,15 +81,10 @@ static void initialize_constants(void)
     val         = idtable.add_string("_val");
 }
 
-
-
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
     install_basic_classes();
 
-    std::map<Symbol,Class_> classLookup;
-    std::map<Class_,std::set<Class_> > inheritanceSet;
-    
     // check for duplicate classes in class tree
     for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
         Class_ n = classes->nth(i);
@@ -98,21 +93,23 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         Symbol name = n->get_name();
         Symbol parent = n->get_parent();
 
+        /*
         error_stream << "Filename: " << filename << endl;
         error_stream << "Sym Name: " << name << endl;
         error_stream << "Parent  : " << parent << endl;
+        */
 
-        if (name == Bool || name == Int || name == IO || name == Object || name == SELF_TYPE || name == Str)
+        if (name == SELF_TYPE)
             semant_error(filename, n);
 
         if (parent == Bool || parent == Int || parent == SELF_TYPE || parent == Str)
             semant_error(filename, n);
 
-        if (classLookup.count(name))
+        if (class_lookup.count(name))
             // already in set, duplicate
             semant_error(filename, n);
         else
-            classLookup.insert(std::make_pair(name,n));
+            class_lookup[name] = n;
     }
 
     for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
@@ -120,14 +117,55 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         Symbol parent = n->get_parent();
         Symbol filename = n->get_filename();
 
-        if (parent != Object && parent != IO && !classLookup.count(parent))
+        if (class_lookup.count(parent) == 0)
             // inherits from undefined parent
             semant_error(filename, n);
-        else
+        else {
             // add decendant to parent's inheritanceSet
-            inheritanceSet[classLookup[parent]].insert(n);
+            inheritance_set[class_lookup[parent]].insert(n);
+        }
     }
 
+//    dumpInheritance(inheritanceSet, error_stream);
+
+    for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end(); it_p++) {
+        std::set<Class_> mark_set;
+
+        //error_stream << (it_p->first)->get_name() << endl;
+        testForCycles(it_p->first, mark_set, 0);
+    }
+}
+
+void ClassTable::testForCycles(Class_ parent, std::set<Class_> mark_set, int depth) {
+
+    /*
+    for (int i = 0; i < depth; i++) error_stream << "  ";
+    error_stream << parent->get_name() << endl;
+    */
+
+    //attempt to mark class
+    if (mark_set.count(parent)) {
+        error_stream << "Class already traversed in Class Cycle Checker. Not Acyclic!" << endl;
+        semant_error();
+    } else {
+        mark_set.insert(parent);
+    }
+
+    std::set<Class_> child_set = inheritance_set[parent];
+    for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
+        testForCycles(*it_c, mark_set, depth + 1);
+    }
+}
+
+void ClassTable::dumpInheritance() {
+    error_stream << "Inheritance: " << endl;
+
+    for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end(); it_p++) {
+        error_stream << "  Parent: " << (it_p->first)->get_name() << endl;
+        for (std::set<Class_>::iterator it_c = (it_p->second).begin(); it_c != (it_p->second).end(); it_c++) {
+            error_stream << "    Child: " << (*it_c)->get_name() << endl;
+        }
+    }
 }
 
 void ClassTable::install_basic_classes() {
@@ -135,17 +173,17 @@ void ClassTable::install_basic_classes() {
     // The tree package uses these globals to annotate the classes built below.
    // curr_lineno  = 0;
     Symbol filename = stringtable.add_string("<basic class>");
-    
+
     // The following demonstrates how to create dummy parse trees to
     // refer to basic Cool classes.  There's no need for method
     // bodies -- these are already built into the runtime system.
-    
+
     // IMPORTANT: The results of the following expressions are
     // stored in local variables.  You will want to do something
     // with those variables at the end of this method to make this
     // code meaningful.
 
-    // 
+    //
     // The Object class has no parent class. Its methods are
     //        abort() : Object    aborts the program
     //        type_name() : Str   returns a string representation of class name
@@ -155,7 +193,7 @@ void ClassTable::install_basic_classes() {
     // are already built in to the runtime system.
 
     Class_ Object_class =
-	class_(Object, 
+	class_(Object,
 	       No_class,
 	       append_Features(
 			       append_Features(
@@ -164,6 +202,7 @@ void ClassTable::install_basic_classes() {
 			       single_Features(method(copy, nil_Formals(), SELF_TYPE, no_expr()))),
 	       filename);
 
+
     // 
     // The IO class inherits from Object. Its methods are
     //        out_string(Str) : SELF_TYPE       writes a string to the output
@@ -171,8 +210,8 @@ void ClassTable::install_basic_classes() {
     //        in_string() : Str                 reads a string from the input
     //        in_int() : Int                      "   an int     "  "     "
     //
-    Class_ IO_class = 
-	class_(IO, 
+    Class_ IO_class =
+	class_(IO,
 	       Object,
 	       append_Features(
 			       append_Features(
@@ -183,11 +222,12 @@ void ClassTable::install_basic_classes() {
 										      SELF_TYPE, no_expr()))),
 					       single_Features(method(in_string, nil_Formals(), Str, no_expr()))),
 			       single_Features(method(in_int, nil_Formals(), Int, no_expr()))),
-	       filename);  
+	       filename);
+
 
     //
     // The Int class has no methods and only a single attribute, the
-    // "val" for the integer. 
+    // "val" for the integer.
     //
     Class_ Int_class =
 	class_(Int, 
@@ -229,6 +269,13 @@ void ClassTable::install_basic_classes() {
 						      Str, 
 						      no_expr()))),
 	       filename);
+
+    //Add all the base classes to the class looker-upper
+    class_lookup[Object_class->get_name()] = Object_class; 
+    class_lookup[IO_class->get_name()] = IO_class; 
+    class_lookup[Int_class->get_name()] = Int_class; 
+    class_lookup[Bool_class->get_name()] = Bool_class; 
+    class_lookup[Str_class->get_name()] = Str_class; 
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -253,7 +300,7 @@ ostream& ClassTable::semant_error(Class_ c)
 
 ostream& ClassTable::semant_error(Symbol filename, tree_node *t)
 {
-    error_stream << filename << ":" << t->get_line_number() << ": ";
+    error_stream << filename << ":" << t->get_line_number() << ": " << endl;
     return semant_error();
 }
 
