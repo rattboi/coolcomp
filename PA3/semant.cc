@@ -19,7 +19,7 @@ extern char *curr_filename;
 // as fixed names used by the runtime system.
 //
 //////////////////////////////////////////////////////////////////////
-static Symbol 
+static Symbol
     arg,
     arg2,
     Bool,
@@ -64,7 +64,7 @@ static void initialize_constants(void)
     length      = idtable.add_string("length");
     Main        = idtable.add_string("Main");
     main_meth   = idtable.add_string("main");
-    //   _no_class is a symbol that can't be the name of any 
+    //   _no_class is a symbol that can't be the name of any
     //   user-defined class.
     No_class    = idtable.add_string("_no_class");
     No_type     = idtable.add_string("_no_type");
@@ -93,21 +93,21 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         Symbol name = n->get_name();
         Symbol parent = n->get_parent();
 
-        /*
-        error_stream << "Filename: " << filename << endl;
-        error_stream << "Sym Name: " << name << endl;
-        error_stream << "Parent  : " << parent << endl;
-        */
+        if (semant_debug) {
+            error_stream << "Filename: " << filename << endl;
+            error_stream << "Sym Name: " << name << endl;
+            error_stream << "Parent  : " << parent << endl;
+        }
 
         if (name == SELF_TYPE)
-            semant_error(filename, n);
+            semant_error(filename, n) << "Can't name class SELF_TYPE" << endl;
 
         if (parent == Bool || parent == Int || parent == SELF_TYPE || parent == Str)
-            semant_error(filename, n);
+            semant_error(filename, n) << "Can't inherit from " << parent << endl;
 
         if (class_lookup.count(name))
             // already in set, duplicate
-            semant_error(filename, n);
+            semant_error(filename, n) << "Duplicate class definition" << endl;
         else
             class_lookup[name] = n;
     }
@@ -119,34 +119,35 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
 
         if (class_lookup.count(parent) == 0)
             // inherits from undefined parent
-            semant_error(filename, n);
+            semant_error(filename, n) << "Undefined parent inheritance" << endl;
         else {
             // add decendant to parent's inheritanceSet
             inheritance_set[class_lookup[parent]].insert(n);
         }
     }
 
-//    dumpInheritance(inheritanceSet, error_stream);
+    if (semant_debug) dumpInheritance(); 
 
-    for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end(); it_p++) {
+    for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end() && !semant_errors; it_p++) {
+        if (semant_debug)
+            error_stream << (it_p->first)->get_name() << endl;
+
         std::set<Class_> mark_set;
-
-        //error_stream << (it_p->first)->get_name() << endl;
         testForCycles(it_p->first, mark_set, 0);
     }
 }
 
 void ClassTable::testForCycles(Class_ parent, std::set<Class_> mark_set, int depth) {
 
-    /*
-    for (int i = 0; i < depth; i++) error_stream << "  ";
-    error_stream << parent->get_name() << endl;
-    */
+    if (semant_debug) {
+        for (int i = 0; i < depth; i++) error_stream << "  ";
+        error_stream << parent->get_name() << endl;
+    }
 
     //attempt to mark class
     if (mark_set.count(parent)) {
-        error_stream << "Class already traversed in Class Cycle Checker. Not Acyclic!" << endl;
-        semant_error();
+        semant_error() << "Class already traversed in Class Cycle Checker. Not Acyclic!" << endl;
+        return;
     } else {
         mark_set.insert(parent);
     }
@@ -203,7 +204,7 @@ void ClassTable::install_basic_classes() {
 	       filename);
 
 
-    // 
+    //
     // The IO class inherits from Object. Its methods are
     //        out_string(Str) : SELF_TYPE       writes a string to the output
     //        out_int(Int) : SELF_TYPE            "    an int    "  "     "
@@ -230,7 +231,7 @@ void ClassTable::install_basic_classes() {
     // "val" for the integer.
     //
     Class_ Int_class =
-	class_(Int, 
+	class_(Int,
 	       Object,
 	       single_Features(attr(val, prim_slot, no_expr())),
 	       filename);
@@ -248,9 +249,9 @@ void ClassTable::install_basic_classes() {
     //       length() : Int                       returns length of the string
     //       concat(arg: Str) : Str               performs string concatenation
     //       substr(arg: Int, arg2: Int): Str     substring selection
-    //       
+    //
     Class_ Str_class =
-	class_(Str, 
+	class_(Str,
 	       Object,
 	       append_Features(
 			       append_Features(
@@ -259,23 +260,23 @@ void ClassTable::install_basic_classes() {
 									       single_Features(attr(val, Int, no_expr())),
 									       single_Features(attr(str_field, prim_slot, no_expr()))),
 							       single_Features(method(length, nil_Formals(), Int, no_expr()))),
-					       single_Features(method(concat, 
+					       single_Features(method(concat,
 								      single_Formals(formal(arg, Str)),
-								      Str, 
+								      Str,
 								      no_expr()))),
-			       single_Features(method(substr, 
-						      append_Formals(single_Formals(formal(arg, Int)), 
+			       single_Features(method(substr,
+						      append_Formals(single_Formals(formal(arg, Int)),
 								     single_Formals(formal(arg2, Int))),
-						      Str, 
+						      Str,
 						      no_expr()))),
 	       filename);
 
     //Add all the base classes to the class looker-upper
-    class_lookup[Object_class->get_name()] = Object_class; 
-    class_lookup[IO_class->get_name()] = IO_class; 
-    class_lookup[Int_class->get_name()] = Int_class; 
-    class_lookup[Bool_class->get_name()] = Bool_class; 
-    class_lookup[Str_class->get_name()] = Str_class; 
+    class_lookup[Object_class->get_name()] = Object_class;
+    class_lookup[IO_class->get_name()] = IO_class;
+    class_lookup[Int_class->get_name()] = Int_class;
+    class_lookup[Bool_class->get_name()] = Bool_class;
+    class_lookup[Str_class->get_name()] = Str_class;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -283,34 +284,119 @@ void ClassTable::install_basic_classes() {
 // semant_error is an overloaded function for reporting errors
 // during semantic analysis.  There are three versions:
 //
-//    ostream& ClassTable::semant_error()                
+//    ostream& ClassTable::semant_error()
 //
 //    ostream& ClassTable::semant_error(Class_ c)
 //       print line number and filename for `c'
 //
-//    ostream& ClassTable::semant_error(Symbol filename, tree_node *t)  
+//    ostream& ClassTable::semant_error(Symbol filename, tree_node *t)
 //       print a line number and filename
 //
 ///////////////////////////////////////////////////////////////////
 
 ostream& ClassTable::semant_error(Class_ c)
-{                                                             
+{
     return semant_error(c->get_filename(),c);
-}    
+}
 
 ostream& ClassTable::semant_error(Symbol filename, tree_node *t)
 {
-    error_stream << filename << ":" << t->get_line_number() << ": " << endl;
+    error_stream << filename << ":" << t->get_line_number() << ": ";
     return semant_error();
 }
 
-ostream& ClassTable::semant_error()                  
-{                                                 
-    semant_errors++;                            
+ostream& ClassTable::semant_error()
+{
+    semant_errors++;
     return error_stream;
-} 
+}
 
+bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
+    if (semant_debug) error_stream << "Entering check_method_type_sig" << endl;
 
+    std::set<Feature> feature_set = method_set[c];
+    if (semant_debug) error_stream << "Got feature set" << endl;
+
+    for(std::set<Feature>::iterator it = feature_set.begin(); it != feature_set.end(); it++) {
+        Feature it_f = *it;
+
+        // if function overrides parent function...
+        if (semant_debug) error_stream << "Function: " << f->get_name() << "Iterator: " << it_f->get_name() << endl;
+
+        if (it_f->get_name() == f->get_name()) {
+            if (semant_debug) error_stream << "Overridden method!" << endl;
+
+            // check that return type matches parent 
+            if (it_f->get_type() != f->get_type()) {
+                semant_error(c) << "Return type of overridden function doesn't match parent" << endl;
+                return false;
+            }
+
+            Formals it_formals = it_f->get_formals();
+            Formals f_formals  = f->get_formals();
+            // check # of formal arguments matches parent
+            if (it_formals->len() != f_formals->len()) {
+                semant_error(c) << "Overridden function is not the same arity as parent" << endl;
+                return false;
+            }
+            
+            // check that types on arguments match parent
+            for (int i = it_formals->first(); it_formals->more(i); i = it_formals->next(i)) {
+                if (it_formals->nth(i)->get_type() != f_formals->nth(i)->get_type()) {
+                    semant_error(c) << "In redefined method " << it_formals->nth(i)->get_name()
+                                    << ", parameter type " << f_formals->nth(i)->get_type()
+                                    <<    " is different from original type " << it_formals->nth(i)->get_type() 
+                                    << endl;
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+void ClassTable::check_methods_recur(Class_ c, Class_ p) {
+    std::set<Feature> feature_set;
+    Features features = c->get_features();
+
+    Symbol p_symbol;
+    if (p != NULL) {
+        p_symbol = p->get_name(); // debug printing
+        method_set[c] = method_set[p]; // initialize with same methods as parent
+    } else {
+        p_symbol = No_class;
+    }
+
+    if (semant_debug)
+        error_stream << "Class: " << c->get_name() << " inherits from " << p_symbol << endl;
+
+    for (int i = features->first(); features->more(i); i = features->next(i)) {
+        Feature f = features->nth(i);
+
+        if (semant_debug) {
+            error_stream << "  Feature: " << endl; 
+            error_stream << "    Type : " << (f->is_method() ? "Method" : "Attr") << endl;
+            error_stream << "    Name : " << f->get_name() << endl;
+        }
+
+        if (f->is_method())
+        {
+            bool typesig_ok = check_method_type_sig(c, f);
+            if (semant_debug) error_stream << "Signatures " << (typesig_ok ? "pass" : "fail") << endl;
+
+            if (typesig_ok) method_set[c].insert(f);
+        }
+    }
+
+    std::set<Class_> child_set = inheritance_set[c];
+    for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
+        check_methods_recur(*it_c, c);
+    }
+}
+
+void ClassTable::check_methods() {
+    check_methods_recur(class_lookup[Object], NULL);
+}
 
 /*   This is the entry point to the semantic checker.
 
@@ -332,7 +418,10 @@ void program_class::semant()
     /* ClassTable constructor may do some semantic analysis */
     ClassTable *classtable = new ClassTable(classes);
 
-    /* some semantic analysis code may go here */
+    if (!classtable->errors()) {
+        // inheritance graph is sound. Start checking features
+        classtable->check_methods();
+    }
 
     if (classtable->errors()) {
 	cerr << "Compilation halted due to static semantic errors." << endl;

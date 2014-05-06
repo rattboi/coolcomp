@@ -58,6 +58,7 @@ void dump_with_types(ostream&, int);
 virtual Symbol get_filename() = 0;      \
 virtual Symbol get_name() = 0;      \
 virtual Symbol get_parent() = 0;      \
+virtual Features get_features() = 0;      \
 virtual void dump_with_types(ostream&,int) = 0; 
 
 
@@ -67,6 +68,10 @@ void dump_with_types(ostream&,int);
 
 
 #define Feature_EXTRAS                                        \
+virtual Symbol get_name() = 0;      \
+virtual bool is_method() = 0;      \
+virtual Symbol get_type() = 0;    \
+virtual Formals get_formals() = 0;    \
 virtual void dump_with_types(ostream&,int) = 0; 
 
 
@@ -78,6 +83,8 @@ void dump_with_types(ostream&,int);
 
 
 #define Formal_EXTRAS                              \
+virtual Symbol get_type() = 0; \
+virtual Symbol get_name() = 0; \
 virtual void dump_with_types(ostream&,int) = 0;
 
 
