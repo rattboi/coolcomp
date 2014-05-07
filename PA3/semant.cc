@@ -472,24 +472,122 @@ Symbol class__class::traverse(ClassTable* env) {
     return Object;
 }
 
-Symbol method_class::traverse(ClassTable* env) { return Object; }
-Symbol attr_class::traverse(ClassTable* env) { return Object; }
+Symbol method_class::traverse(ClassTable* env) { 
+    env->sym_tab->enterscope();
+
+    for (int i = formals->first(); formals->more(i); i = formals->next(i))
+        formals->nth(i)->traverse(env);
+
+    expr->traverse(env);
+
+    env->sym_tab->exitscope();
+    return return_type;
+}
+
+Symbol attr_class::traverse(ClassTable* env) {
+    init->traverse(env);
+    
+    // need to do more checking here
+    return type_decl;
+}
+
 Symbol formal_class::traverse(ClassTable* env) { return Object; }
 Symbol branch_class::traverse(ClassTable* env) { return Object; }
 
-Symbol assign_class::traverse(ClassTable* env) { return Object; }
+Symbol assign_class::traverse(ClassTable* env) { 
+    if (semant_debug) cout << "In assign expression" << endl;
+    
+    Symbol *attr_type = env->sym_tab->lookup(name); 
+
+    if (attr_type == NULL) {
+        env->semant_error() << "Assigning to undefined attribute" << endl;
+        return set_type(Object)->get_type(); 
+    }
+
+    Symbol expr_type;
+    expr_type = expr->traverse(env);
+
+    if (expr_type != (*attr_type)) {
+        env->semant_error() << "Attempting to assign type " << expr_type << " to attribute with type " << attr_type << endl;
+        return set_type(Object)->get_type(); 
+    }
+
+    return (*attr_type);
+}
+
 Symbol static_dispatch_class::traverse(ClassTable* env) { return Object; }
 Symbol dispatch_class::traverse(ClassTable* env) { return Object; }
 Symbol cond_class::traverse(ClassTable* env) { return Object; }
 Symbol loop_class::traverse(ClassTable* env) { return Object; }
 Symbol typcase_class::traverse(ClassTable* env) { return Object; }
-Symbol block_class::traverse(ClassTable* env) { return Object; }
+
+Symbol block_class::traverse(ClassTable* env) { 
+    if (semant_debug) cout << "In block expression" << endl;
+    Symbol expr_type;
+    for (int i = body->first(); body->more(i); i = body->next(i)) {
+        expr_type = body->nth(i)->traverse(env);
+    }
+    return set_type(expr_type)->get_type(); 
+}
+
 Symbol let_class::traverse(ClassTable* env) { return Object; }
-Symbol plus_class::traverse(ClassTable* env) { return Object; }
-Symbol sub_class::traverse(ClassTable* env) { return Object; }
-Symbol mul_class::traverse(ClassTable* env) { return Object; }
-Symbol divide_class::traverse(ClassTable* env) { return Object; }
-Symbol neg_class::traverse(ClassTable* env) { return Object; }
+
+Symbol plus_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error() << "Expr 1 of Add is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error() << "Expr 2 of Add is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Int)->get_type(); 
+}
+
+Symbol sub_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error() << "Expr 1 of Sub is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error() << "Expr 2 of Sub is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Int)->get_type(); 
+}
+
+Symbol mul_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error() << "Expr 1 of Mul is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error() << "Expr 2 of Mul is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Int)->get_type(); 
+}
+
+Symbol divide_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error() << "Expr 1 of Div is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error() << "Expr 2 of Div is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Int)->get_type(); 
+}
+
+Symbol neg_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error() << "Expr 1 of Div is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Int)->get_type(); 
+}
+
 Symbol lt_class::traverse(ClassTable* env) { return Object; }
 Symbol eq_class::traverse(ClassTable* env) { return Object; }
 Symbol leq_class::traverse(ClassTable* env) { return Object; }
