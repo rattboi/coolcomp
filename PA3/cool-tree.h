@@ -12,6 +12,7 @@
 #include "tree.h"
 #include "cool-tree.handcode.h"
 
+class ClassTable;
 
 // define the class for phylum
 // define simple phylum - Program
@@ -171,6 +172,7 @@ public:
    Symbol   get_name()     { return name; }
    Symbol   get_parent()   { return parent; }
    Features get_features() { return features; }
+   Symbol traverse(ClassTable* env); 
 };
 
 
@@ -253,6 +255,7 @@ public:
 #endif
    Symbol get_name()        { return name; }
    Symbol get_type()        { return type_decl; }
+   Symbol traverse(ClassTable* env); 
 };
 
 
@@ -277,6 +280,7 @@ public:
 #ifdef branch_EXTRAS
    branch_EXTRAS
 #endif
+   Symbol traverse(ClassTable* env); 
 };
 
 

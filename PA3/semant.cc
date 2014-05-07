@@ -135,6 +135,9 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         std::set<Class_> mark_set;
         testForCycles(it_p->first, mark_set, 0);
     }
+
+    //create symbol table
+    sym_tab = new SymbolTable<Symbol, Symbol>();
 }
 
 void ClassTable::testForCycles(Class_ parent, std::set<Class_> mark_set, int depth) {
@@ -425,6 +428,90 @@ void ClassTable::check_methods() {
     check_methods_recur(class_lookup[Object], NULL);
 }
 
+void ClassTable::check_types_and_scopes() {
+    
+    // start from base class of all other classes
+    Class_ rootClass = class_lookup[Object];
+
+    rootClass->traverse(this);
+}
+
+Symbol class__class::traverse(ClassTable* env) {
+
+    env->sym_tab->enterscope();
+
+    Features f_list = get_features();
+
+    for (int i = f_list->first(); f_list->more(i); i = f_list->next(i)) {
+        Feature f = f_list->nth(i);
+        Symbol f_name = f->get_name();
+
+        // check attributes. Methods basically already checked.
+        if (!f->is_method()) {
+            if (env->sym_tab->lookup(f_name) != NULL) 
+                env->semant_error(this) << "Illegal redefinition of attribute" << endl;
+            else if (f_name == self)
+                env->semant_error(this) << "Attribute cannot be named self" << endl;
+            else {
+                Symbol *type = new Symbol;
+                *type = f->get_type();
+                env->sym_tab->addid(f_name, type);
+            }
+        }
+    }
+
+    // now that this class's attributes are added to scope, traverse all the featuers and annotate/type-check
+    for (int i = f_list->first(); f_list->more(i); i = f_list->next(i)) f_list->nth(i)->traverse(env);
+    
+    // recurse through children of current class, entering a new scope on each
+    std::set<Class_> child_set = env->inheritance_set[this];
+    for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) 
+        (*it_c)->traverse(env);
+    
+    env->sym_tab->exitscope();
+    return Object;
+}
+
+Symbol method_class::traverse(ClassTable* env) { return Object; }
+Symbol attr_class::traverse(ClassTable* env) { return Object; }
+Symbol formal_class::traverse(ClassTable* env) { return Object; }
+Symbol branch_class::traverse(ClassTable* env) { return Object; }
+
+Symbol assign_class::traverse(ClassTable* env) { return Object; }
+Symbol static_dispatch_class::traverse(ClassTable* env) { return Object; }
+Symbol dispatch_class::traverse(ClassTable* env) { return Object; }
+Symbol cond_class::traverse(ClassTable* env) { return Object; }
+Symbol loop_class::traverse(ClassTable* env) { return Object; }
+Symbol typcase_class::traverse(ClassTable* env) { return Object; }
+Symbol block_class::traverse(ClassTable* env) { return Object; }
+Symbol let_class::traverse(ClassTable* env) { return Object; }
+Symbol plus_class::traverse(ClassTable* env) { return Object; }
+Symbol sub_class::traverse(ClassTable* env) { return Object; }
+Symbol mul_class::traverse(ClassTable* env) { return Object; }
+Symbol divide_class::traverse(ClassTable* env) { return Object; }
+Symbol neg_class::traverse(ClassTable* env) { return Object; }
+Symbol lt_class::traverse(ClassTable* env) { return Object; }
+Symbol eq_class::traverse(ClassTable* env) { return Object; }
+Symbol leq_class::traverse(ClassTable* env) { return Object; }
+Symbol comp_class::traverse(ClassTable* env) { return Object; }
+
+Symbol int_const_class::traverse(ClassTable* env) { 
+    return set_type(Int)->get_type(); 
+}
+
+Symbol bool_const_class::traverse(ClassTable* env) { 
+    return set_type(Bool)->get_type(); 
+}
+
+Symbol string_const_class::traverse(ClassTable* env) { 
+    return set_type(Str)->get_type(); 
+}
+
+Symbol new__class::traverse(ClassTable* env) { return Object; }
+Symbol isvoid_class::traverse(ClassTable* env) { return Object; }
+Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
+Symbol object_class::traverse(ClassTable* env) { return Object; }
+
 /*   This is the entry point to the semantic checker.
 
      Your checker should do the following two things:
@@ -450,9 +537,14 @@ void program_class::semant()
         classtable->check_methods();
     }
 
+    if (!classtable->errors()) {
+        // passed basic sanity for methods. Check types and scopes, annotating along the way
+        classtable->check_types_and_scopes();
+    }
+
     if (classtable->errors()) {
-	cerr << "Compilation halted due to static semantic errors." << endl;
-	exit(1);
+        cerr << "Compilation halted due to static semantic errors." << endl;
+        exit(1);
     }
 }
 
