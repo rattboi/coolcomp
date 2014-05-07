@@ -312,17 +312,15 @@ ostream& ClassTable::semant_error()
 }
 
 bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
-    if (semant_debug) error_stream << "Entering check_method_type_sig" << endl;
 
     std::set<Feature> feature_set = method_set[c];
-    if (semant_debug) error_stream << "Got feature set" << endl;
 
     for(std::set<Feature>::iterator it = feature_set.begin(); it != feature_set.end(); it++) {
         Feature it_f = *it;
 
-        // if function overrides parent function...
         if (semant_debug) error_stream << "Function: " << f->get_name() << "Iterator: " << it_f->get_name() << endl;
 
+        // if function overrides parent function...
         if (it_f->get_name() == f->get_name()) {
             if (semant_debug) error_stream << "Overridden method!" << endl;
 
@@ -355,8 +353,19 @@ bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
     return true;
 }
 
+bool ClassTable::check_multiple_method(Class_ c, Feature f, std::set<Feature> curr_method_set) {
+
+    for (std::set<Feature>::iterator it_f = curr_method_set.begin(); it_f != curr_method_set.end(); it_f++) {
+        if (f->get_name() == (*it_f)->get_name()) {
+            semant_error(c) << "Method multiply defined in single class" << endl;
+            return false;
+        }
+    }
+    return true;
+}
+
 void ClassTable::check_methods_recur(Class_ c, Class_ p) {
-    std::set<Feature> feature_set;
+
     Features features = c->get_features();
 
     Symbol p_symbol;
@@ -370,6 +379,7 @@ void ClassTable::check_methods_recur(Class_ c, Class_ p) {
     if (semant_debug)
         error_stream << "Class: " << c->get_name() << " inherits from " << p_symbol << endl;
 
+    std::set<Feature> curr_method_set;
     for (int i = features->first(); features->more(i); i = features->next(i)) {
         Feature f = features->nth(i);
 
@@ -384,10 +394,27 @@ void ClassTable::check_methods_recur(Class_ c, Class_ p) {
             bool typesig_ok = check_method_type_sig(c, f);
             if (semant_debug) error_stream << "Signatures " << (typesig_ok ? "pass" : "fail") << endl;
 
-            if (typesig_ok) method_set[c].insert(f);
+            bool defined_once = check_multiple_method(c,f,curr_method_set);
+            if (semant_debug) error_stream << "Method defined " << (defined_once ? "" : "more than ") << "once" << endl;
+
+            if (typesig_ok && defined_once) curr_method_set.insert(f);
         }
     }
 
+    method_set[c].insert(curr_method_set.begin(),curr_method_set.end());
+
+    if (c->get_name() == Main) {
+        bool main_in_Main = false;
+
+        for (std::set<Feature>::iterator it_f = curr_method_set.begin(); it_f != curr_method_set.end(); it_f++) 
+            if ((*it_f)->get_name() == main_meth)
+                main_in_Main = true;
+
+        if (!main_in_Main) 
+            semant_error(c) << "No main method in Main class" << endl;
+    }
+
+    // recurse through children of current class
     std::set<Class_> child_set = inheritance_set[c];
     for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
         check_methods_recur(*it_c, c);

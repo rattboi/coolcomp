@@ -29,6 +29,7 @@ private:
 
   void check_methods_recur(Class_ c, Class_ p);
   bool check_method_type_sig(Class_ c, Feature f);
+  bool check_multiple_method(Class_ c, Feature f, std::set<Feature> curr_method_set); 
   std::map<Symbol, Class_> class_lookup;
   std::map<Class_, std::set<Class_> > inheritance_set;
   std::map<Class_, std::set<Feature> > method_set;
