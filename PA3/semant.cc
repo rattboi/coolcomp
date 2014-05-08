@@ -634,7 +634,16 @@ Symbol new__class::traverse(ClassTable* env) {
 
 Symbol isvoid_class::traverse(ClassTable* env) { return Object; }
 Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
-Symbol object_class::traverse(ClassTable* env) { return Object; }
+
+Symbol object_class::traverse(ClassTable* env) { 
+    Symbol *attr_type = env->sym_tab->lookup(name); 
+
+    if (attr_type == NULL) {
+        env->semant_error(env->get_curr_class()) << "reference to undefined object " << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(*attr_type)->get_type(); 
+}
 
 /*   This is the entry point to the semantic checker.
 
