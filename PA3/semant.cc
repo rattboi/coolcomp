@@ -85,7 +85,9 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
 
     install_basic_classes();
 
-    // check for duplicate classes in class tree
+    bool seen_Main = false;
+
+    // check for duplicate classes in class tree, and verify Main is a class in class tree
     for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
         Class_ n = classes->nth(i);
 
@@ -102,6 +104,8 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         if (name == SELF_TYPE)
             semant_error(filename, n) << "Can't name class SELF_TYPE" << endl;
 
+        if (name == Main) seen_Main = true; 
+
         if (parent == Bool || parent == Int || parent == SELF_TYPE || parent == Str)
             semant_error(filename, n) << "Can't inherit from " << parent << endl;
 
@@ -111,6 +115,8 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         else
             class_lookup[name] = n;
     }
+
+    if (!seen_Main) semant_error() << "Class Main is not defined." << endl;
 
     for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
         Class_ n = classes->nth(i);
