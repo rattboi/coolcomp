@@ -97,6 +97,7 @@ void dump_with_types(ostream&,int);
 
 
 #define Case_EXTRAS                             \
+virtual Symbol traverse(ClassTable* env) = 0; \
 virtual void dump_with_types(ostream& ,int) = 0;
 
 

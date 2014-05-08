@@ -531,7 +531,12 @@ Symbol formal_class::traverse(ClassTable* env) {
     return type_decl;
 }
 
-Symbol branch_class::traverse(ClassTable* env) { return Object; }
+Symbol branch_class::traverse(ClassTable* env) {
+
+    expr->traverse(env);
+
+    return type_decl;
+} 
 
 Symbol assign_class::traverse(ClassTable* env) { 
     if (semant_debug) cout << "In assign expression" << endl;
@@ -556,9 +561,45 @@ Symbol assign_class::traverse(ClassTable* env) {
 
 Symbol static_dispatch_class::traverse(ClassTable* env) { return Object; }
 Symbol dispatch_class::traverse(ClassTable* env) { return Object; }
-Symbol cond_class::traverse(ClassTable* env) { return Object; }
-Symbol loop_class::traverse(ClassTable* env) { return Object; }
-Symbol typcase_class::traverse(ClassTable* env) { return Object; }
+
+Symbol cond_class::traverse(ClassTable* env) {
+    if (pred->traverse(env) != Bool) {
+        env->semant_error(env->get_curr_class()) << "Predicate of IF is not Bool" << endl;
+        return set_type(Object)->get_type(); 
+    }
+
+    Symbol then_type = then_exp->traverse(env);
+    Symbol else_type = else_exp->traverse(env);
+
+    // this is wrong, but don't have LUB check yet
+    return set_type(then_type)->get_type();
+} 
+
+Symbol loop_class::traverse(ClassTable* env) {
+    if (pred->traverse(env) != Bool) {
+        env->semant_error(env->get_curr_class()) << "Predicate of LOOP is not Bool" << endl;
+        return set_type(Object)->get_type(); 
+    }
+
+    body->traverse(env);
+
+    // The static type of a loop expression is Object
+    return set_type(Object)->get_type();
+}
+
+Symbol typcase_class::traverse(ClassTable* env) {
+    env->sym_tab->enterscope();
+
+    if (semant_debug) cout << "In case" << endl;
+
+    Symbol type = expr->traverse(env);
+
+    for (int i = cases->first(); cases->more(i); i = cases->next(i))
+        cases->nth(i)->traverse(env);
+
+    env->sym_tab->exitscope();
+    return set_type(type)->get_type();
+} 
 
 Symbol block_class::traverse(ClassTable* env) { 
     if (semant_debug) cout << "In block expression" << endl;
@@ -744,5 +785,3 @@ void program_class::semant()
         exit(1);
     }
 }
-
-
