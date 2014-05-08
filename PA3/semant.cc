@@ -561,7 +561,7 @@ Symbol plus_class::traverse(ClassTable* env) {
         return set_type(Object)->get_type(); 
     }
     if (e2->traverse(env) != Int) {
-        env->semant_error() << "Expr 2 of Add is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 2 of Add is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
@@ -569,11 +569,11 @@ Symbol plus_class::traverse(ClassTable* env) {
 
 Symbol sub_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Sub is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 1 of Sub is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     if (e2->traverse(env) != Int) {
-        env->semant_error() << "Expr 2 of Sub is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 2 of Sub is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
@@ -581,11 +581,11 @@ Symbol sub_class::traverse(ClassTable* env) {
 
 Symbol mul_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Mul is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 1 of Mul is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     if (e2->traverse(env) != Int) {
-        env->semant_error() << "Expr 2 of Mul is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 2 of Mul is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
@@ -593,11 +593,11 @@ Symbol mul_class::traverse(ClassTable* env) {
 
 Symbol divide_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Div is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 1 of Div is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     if (e2->traverse(env) != Int) {
-        env->semant_error() << "Expr 2 of Div is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 2 of Div is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
@@ -605,16 +605,55 @@ Symbol divide_class::traverse(ClassTable* env) {
 
 Symbol neg_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Neg is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 1 of Neg is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
 }
 
-Symbol lt_class::traverse(ClassTable* env) { return Object; }
-Symbol eq_class::traverse(ClassTable* env) { return Object; }
-Symbol leq_class::traverse(ClassTable* env) { return Object; }
-Symbol comp_class::traverse(ClassTable* env) { return Object; }
+Symbol lt_class::traverse(ClassTable* env) { 
+    if (e1->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 1 of LT is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 2 of LT is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Bool)->get_type(); 
+}
+
+Symbol eq_class::traverse(ClassTable* env) { 
+    if (e1->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 1 of EQ is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 2 of EQ is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Bool)->get_type(); 
+}
+
+Symbol leq_class::traverse(ClassTable* env) {
+    if (e1->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 1 of EQ is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    if (e2->traverse(env) != Int) {
+        env->semant_error(env->get_curr_class()) << "Expr 2 of EQ is not Int" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Bool)->get_type(); 
+}
+
+Symbol comp_class::traverse(ClassTable* env) { 
+    if (e1->traverse(env) != Bool) {
+        env->semant_error(env->get_curr_class()) << "Expr 1 of COMP is not Bool" << endl;
+        return set_type(Object)->get_type(); 
+    }
+    return set_type(Bool)->get_type(); 
+}
 
 Symbol int_const_class::traverse(ClassTable* env) { 
     return set_type(Int)->get_type(); 
