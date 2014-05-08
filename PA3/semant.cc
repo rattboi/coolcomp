@@ -320,6 +320,14 @@ ostream& ClassTable::semant_error()
     return error_stream;
 }
 
+Class_ ClassTable::get_curr_class() {
+    return curr_class;
+}
+
+void ClassTable::set_curr_class(Class_ c) {
+    curr_class = c;
+}
+
 bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
 
     std::set<Feature> feature_set = method_set[c];
@@ -438,6 +446,7 @@ void ClassTable::check_types_and_scopes() {
     // start from base class of all other classes
     Class_ rootClass = class_lookup[Object];
 
+    set_curr_class(rootClass);
     rootClass->traverse(this);
 }
 
@@ -476,8 +485,10 @@ Symbol class__class::traverse(ClassTable* env) {
     
     // recurse through children of current class, entering a new scope on each
     std::set<Class_> child_set = env->inheritance_set[this];
-    for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) 
+    for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
+        env->set_curr_class(*it_c);
         (*it_c)->traverse(env);
+    }
     
     env->sym_tab->exitscope();
     return Object;
@@ -512,7 +523,7 @@ Symbol assign_class::traverse(ClassTable* env) {
     Symbol *attr_type = env->sym_tab->lookup(name); 
 
     if (attr_type == NULL) {
-        env->semant_error() << "Assigning to undefined attribute" << endl;
+        env->semant_error(env->get_curr_class()) << "Assigning to undefined attribute" << endl;
         return set_type(Object)->get_type(); 
     }
 
@@ -520,7 +531,7 @@ Symbol assign_class::traverse(ClassTable* env) {
     expr_type = expr->traverse(env);
 
     if (expr_type != (*attr_type)) {
-        env->semant_error() << "Attempting to assign type " << expr_type << " to attribute with type " << (*attr_type) << endl;
+        env->semant_error(env->get_curr_class()) << "Attempting to assign type " << expr_type << " to attribute with type " << (*attr_type) << endl;
         return set_type(Object)->get_type(); 
     }
 
@@ -546,7 +557,7 @@ Symbol let_class::traverse(ClassTable* env) { return Object; }
 
 Symbol plus_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Add is not Int" << endl;
+        env->semant_error(env->get_curr_class()) << "Expr 1 of Add is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     if (e2->traverse(env) != Int) {

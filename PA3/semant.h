@@ -29,6 +29,7 @@ private:
 
   std::map<Symbol, Class_> class_lookup;
   std::map<Class_, std::set<Feature> > method_set;
+  Class_ curr_class;
 
   void dumpInheritance();
   void testForCycles(Class_ parent, std::set<Class_> mark_set, int depth);
@@ -42,8 +43,10 @@ public:
   SymbolTable<Symbol, Symbol> *sym_tab;
   std::map<Class_, std::set<Class_> > inheritance_set;
 
-  void check_methods();
-  void check_types_and_scopes();
+  void   check_methods();
+  void   check_types_and_scopes();
+  Class_ get_curr_class();
+  void   set_curr_class(Class_ c);
 
   int errors() { return semant_errors; }
   ostream& semant_error();
