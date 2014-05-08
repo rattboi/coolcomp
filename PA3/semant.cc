@@ -435,7 +435,6 @@ void ClassTable::check_methods() {
 }
 
 void ClassTable::check_types_and_scopes() {
-    
     // start from base class of all other classes
     Class_ rootClass = class_lookup[Object];
 
@@ -454,11 +453,17 @@ Symbol class__class::traverse(ClassTable* env) {
 
         // check attributes. Methods basically already checked.
         if (!f->is_method()) {
-            if (env->sym_tab->lookup(f_name) != NULL) 
+            if (env->sym_tab->lookup(f_name) != NULL) {
                 env->semant_error(this) << "Illegal redefinition of attribute" << endl;
-            else if (f_name == self)
+                return Object;
+            }
+            else if (f_name == self) {
                 env->semant_error(this) << "Attribute cannot be named self" << endl;
+                return Object;
+            }
             else {
+                if (semant_debug) cout << "Adding attribute " << f_name << " with type " << f->get_type() << endl;
+
                 Symbol *type = new Symbol;
                 *type = f->get_type();
                 env->sym_tab->addid(f_name, type);
@@ -495,7 +500,6 @@ Symbol method_class::traverse(ClassTable* env) {
 Symbol attr_class::traverse(ClassTable* env) {
     init->traverse(env);
     
-    // need to do more checking here
     return type_decl;
 }
 
@@ -590,7 +594,7 @@ Symbol divide_class::traverse(ClassTable* env) {
 
 Symbol neg_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
-        env->semant_error() << "Expr 1 of Div is not Int" << endl;
+        env->semant_error() << "Expr 1 of Neg is not Int" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Int)->get_type(); 
