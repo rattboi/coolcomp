@@ -624,12 +624,17 @@ Symbol lt_class::traverse(ClassTable* env) {
 }
 
 Symbol eq_class::traverse(ClassTable* env) { 
-    if (e1->traverse(env) != Int) {
-        env->semant_error(env->get_curr_class()) << "Expr 1 of EQ is not Int" << endl;
-        return set_type(Object)->get_type(); 
-    }
-    if (e2->traverse(env) != Int) {
-        env->semant_error(env->get_curr_class()) << "Expr 2 of EQ is not Int" << endl;
+    Symbol e1_type = e1->traverse(env);
+    Symbol e2_type = e2->traverse(env);
+
+    bool type_ok = true;
+
+    if (e1_type == Str || e2_type == Str)   type_ok = (e1_type == e2_type);
+    if (e1_type == Int || e2_type == Int)   type_ok = (e1_type == e2_type); 
+    if (e1_type == Bool || e2_type == Bool) type_ok = (e1_type == e2_type);
+
+    if (!type_ok) {
+        env->semant_error(env->get_curr_class()) << "Expr 1 is type " << e1_type << " and Expr 2 is not in EQ" << endl;
         return set_type(Object)->get_type(); 
     }
     return set_type(Bool)->get_type(); 
