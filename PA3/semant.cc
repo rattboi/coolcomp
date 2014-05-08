@@ -280,6 +280,12 @@ void ClassTable::install_basic_classes() {
     class_lookup[Int_class->get_name()] = Int_class;
     class_lookup[Bool_class->get_name()] = Bool_class;
     class_lookup[Str_class->get_name()] = Str_class;
+
+    //All base types inherit from Object
+    inheritance_set[Object_class].insert(IO_class);
+    inheritance_set[Object_class].insert(Int_class);
+    inheritance_set[Object_class].insert(Bool_class);
+    inheritance_set[Object_class].insert(Str_class);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -475,6 +481,8 @@ Symbol class__class::traverse(ClassTable* env) {
 Symbol method_class::traverse(ClassTable* env) { 
     env->sym_tab->enterscope();
 
+    if (semant_debug) cout << "In method " << name << endl;
+
     for (int i = formals->first(); formals->more(i); i = formals->next(i))
         formals->nth(i)->traverse(env);
 
@@ -508,11 +516,11 @@ Symbol assign_class::traverse(ClassTable* env) {
     expr_type = expr->traverse(env);
 
     if (expr_type != (*attr_type)) {
-        env->semant_error() << "Attempting to assign type " << expr_type << " to attribute with type " << attr_type << endl;
+        env->semant_error() << "Attempting to assign type " << expr_type << " to attribute with type " << (*attr_type) << endl;
         return set_type(Object)->get_type(); 
     }
 
-    return (*attr_type);
+    return set_type(*attr_type)->get_type();
 }
 
 Symbol static_dispatch_class::traverse(ClassTable* env) { return Object; }
@@ -605,7 +613,10 @@ Symbol string_const_class::traverse(ClassTable* env) {
     return set_type(Str)->get_type(); 
 }
 
-Symbol new__class::traverse(ClassTable* env) { return Object; }
+Symbol new__class::traverse(ClassTable* env) { 
+    return set_type(type_name)->get_type();
+}
+
 Symbol isvoid_class::traverse(ClassTable* env) { return Object; }
 Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
 Symbol object_class::traverse(ClassTable* env) { return Object; }
