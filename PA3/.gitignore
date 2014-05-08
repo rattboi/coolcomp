@@ -6,3 +6,4 @@ symtab_example
 grading/
 pa3-grading.pl
 *.output
+test.cl
