@@ -632,7 +632,11 @@ Symbol new__class::traverse(ClassTable* env) {
     return set_type(type_name)->get_type();
 }
 
-Symbol isvoid_class::traverse(ClassTable* env) { return Object; }
+Symbol isvoid_class::traverse(ClassTable* env) { 
+    e1->traverse(env);
+    return set_type(Bool)->get_type();
+}
+
 Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
 
 Symbol object_class::traverse(ClassTable* env) { 
