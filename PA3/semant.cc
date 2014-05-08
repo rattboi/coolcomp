@@ -126,21 +126,21 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         }
     }
 
-    if (semant_debug) dumpInheritance(); 
+    if (semant_debug) dump_inheritance(); 
 
     for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end() && !semant_errors; it_p++) {
         if (semant_debug)
             error_stream << (it_p->first)->get_name() << endl;
 
         std::set<Class_> mark_set;
-        testForCycles(it_p->first, mark_set, 0);
+        check_for_cycles(it_p->first, mark_set, 0);
     }
 
     //create symbol table
     sym_tab = new SymbolTable<Symbol, Symbol>();
 }
 
-void ClassTable::testForCycles(Class_ parent, std::set<Class_> mark_set, int depth) {
+void ClassTable::check_for_cycles(Class_ parent, std::set<Class_> mark_set, int depth) {
 
     if (semant_debug) {
         for (int i = 0; i < depth; i++) error_stream << "  ";
@@ -157,11 +157,11 @@ void ClassTable::testForCycles(Class_ parent, std::set<Class_> mark_set, int dep
 
     std::set<Class_> child_set = inheritance_set[parent];
     for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
-        testForCycles(*it_c, mark_set, depth + 1);
+        check_for_cycles(*it_c, mark_set, depth + 1);
     }
 }
 
-void ClassTable::dumpInheritance() {
+void ClassTable::dump_inheritance() {
     error_stream << "Inheritance: " << endl;
 
     for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end(); it_p++) {

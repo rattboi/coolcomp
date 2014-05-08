@@ -31,8 +31,8 @@ private:
   std::map<Class_, std::set<Feature> > method_set;
   Class_ curr_class;
 
-  void dumpInheritance();
-  void testForCycles(Class_ parent, std::set<Class_> mark_set, int depth);
+  void dump_inheritance();
+  void check_for_cycles(Class_ parent, std::set<Class_> mark_set, int depth);
   void check_methods_recur(Class_ c, Class_ p);
   bool check_method_type_sig(Class_ c, Feature f);
   bool check_multiple_method(Class_ c, Feature f, std::set<Feature> curr_method_set); 
