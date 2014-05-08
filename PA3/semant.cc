@@ -520,8 +520,13 @@ Symbol formal_class::traverse(ClassTable* env) {
         return set_type(Object)->get_type(); 
     }
 
+    if (name == self) {
+        env->semant_error(env->get_curr_class()) << "Formal can't be named self" << endl;
+        return set_type(Object)->get_type(); 
+    }
+
     Symbol *type = new Symbol;
-    *type = get_type();
+    *type = type_decl;
     env->sym_tab->addid(name, type);
     return type_decl;
 }
