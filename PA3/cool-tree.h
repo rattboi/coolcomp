@@ -255,6 +255,7 @@ public:
 #endif
    Symbol get_name()        { return name; }
    Symbol get_type()        { return type_decl; }
+   Formal set_type(Symbol s) { type_decl = s; return this; } 
    Symbol traverse(ClassTable* env); 
 };
 

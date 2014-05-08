@@ -514,7 +514,18 @@ Symbol attr_class::traverse(ClassTable* env) {
     return type_decl;
 }
 
-Symbol formal_class::traverse(ClassTable* env) { return Object; }
+Symbol formal_class::traverse(ClassTable* env) { 
+    if (env->sym_tab->probe(name)) {
+        env->semant_error(env->get_curr_class()) << "Formal is multiply defined" << endl;
+        return set_type(Object)->get_type(); 
+    }
+
+    Symbol *type = new Symbol;
+    *type = get_type();
+    env->sym_tab->addid(name, type);
+    return type_decl;
+}
+
 Symbol branch_class::traverse(ClassTable* env) { return Object; }
 
 Symbol assign_class::traverse(ClassTable* env) { 
