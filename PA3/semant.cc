@@ -471,7 +471,7 @@ bool ClassTable::is_subtype(Symbol s1, Symbol s2) {
 
     if (s1 == SELF_TYPE) s1 = curr_class->get_name();
     if (s2 == SELF_TYPE) s2 = curr_class->get_name();
-    
+
     // the only class with parent No_class should be Object
     while(s1 != No_class) {
         if (s1 == s2)
@@ -636,9 +636,7 @@ Symbol assign_class::traverse(ClassTable* env) {
     return set_type(expr_type)->get_type();
 }
 
-Symbol static_dispatch_class::traverse(ClassTable* env) { return Object; }
-
-Symbol dispatch_class::traverse(ClassTable* env) {
+Symbol static_dispatch_class::traverse(ClassTable* env) { 
     if (semant_debug) cout << "In dispatch (" << name << ")" << endl;
 
     Symbol expr_type = expr->traverse(env);
@@ -649,7 +647,7 @@ Symbol dispatch_class::traverse(ClassTable* env) {
         dispatch_class = env->get_curr_class();
     else
         dispatch_class = env->class_lookup[expr_type];
-    
+
     if (semant_debug) cout << "Attempting to dispatch on class (" << dispatch_class->get_name() << ")" << endl;
 
     std::set<Feature> dispatch_features = env->method_set[dispatch_class];
@@ -683,11 +681,70 @@ Symbol dispatch_class::traverse(ClassTable* env) {
     for (int i = dispatch_formals->first(); dispatch_formals->more(i); i = dispatch_formals->next(i)) {
         Symbol f_name = dispatch_formals->nth(i)->get_type();
         Symbol f_type = dispatch_formals->nth(i)->get_type();
-        
+
         if (!env->is_subtype(actual_types.at(i),f_type)) {
             env->semant_error(env->get_curr_class()) << "Applied argument (" << actual_types.at(i) << ") is not a subtype of (" << f_type << ")" << endl;
             return set_type(Object)->get_type();
-        } 
+        }
+    }
+
+    if (set_type(dispatch_ret_type)->get_type() == SELF_TYPE) {
+        set_type(expr_type);
+    }
+
+    return get_type();
+}
+
+Symbol dispatch_class::traverse(ClassTable* env) {
+    if (semant_debug) cout << "In dispatch (" << name << ")" << endl;
+
+    Symbol expr_type = expr->traverse(env);
+
+    Class_ dispatch_class;
+
+    if (expr_type == SELF_TYPE)
+        dispatch_class = env->get_curr_class();
+    else
+        dispatch_class = env->class_lookup[expr_type];
+
+    if (semant_debug) cout << "Attempting to dispatch on class (" << dispatch_class->get_name() << ")" << endl;
+
+    std::set<Feature> dispatch_features = env->method_set[dispatch_class];
+
+    Formals dispatch_formals = NULL;
+    Symbol  dispatch_ret_type = Object;
+
+    for (std::set<Feature>::iterator it_f = dispatch_features.begin(); it_f != dispatch_features.end(); it_f++) {
+        if ((*it_f)->get_name() == name) {
+            if (semant_debug) cout << "Found method (" << name << ") in class (" << dispatch_class->get_name() << ")" << endl;
+            dispatch_formals  = (*it_f)->get_formals();
+            dispatch_ret_type = (*it_f)->get_type();
+        }
+    }
+    if (dispatch_formals == NULL) {
+        env->semant_error(env->get_curr_class()) << "Didn't find method (" << name << ") in class (" << dispatch_class->get_name() << ")" << endl;
+        return set_type(Object)->get_type();
+    }
+
+    // collect the types from traversing the formal arguments to the dispatching function
+    std::vector<Symbol> actual_types;
+    for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+        actual_types.push_back(actual->nth(i)->traverse(env));
+    }
+
+    if (actual_types.size() != (unsigned int)dispatch_formals->len()) {
+        env->semant_error(env->get_curr_class()) << "Invalid number of arguments to method" << endl;
+        return set_type(Object)->get_type();
+    }
+
+    for (int i = dispatch_formals->first(); dispatch_formals->more(i); i = dispatch_formals->next(i)) {
+        Symbol f_name = dispatch_formals->nth(i)->get_type();
+        Symbol f_type = dispatch_formals->nth(i)->get_type();
+
+        if (!env->is_subtype(actual_types.at(i),f_type)) {
+            env->semant_error(env->get_curr_class()) << "Applied argument (" << actual_types.at(i) << ") is not a subtype of (" << f_type << ")" << endl;
+            return set_type(Object)->get_type();
+        }
     }
 
     if (set_type(dispatch_ret_type)->get_type() == SELF_TYPE) {
