@@ -953,6 +953,10 @@ Symbol string_const_class::traverse(ClassTable* env) {
 
 Symbol new__class::traverse(ClassTable* env) {
 
+    if (type_name == SELF_TYPE) {
+        return set_type(SELF_TYPE)->get_type();
+    }
+
     if (env->class_lookup.find(type_name) == env->class_lookup.end()) {
         env->semant_error(env->get_curr_class()) << "Undefined type in NEW" << endl;
         return set_type(Object)->get_type();
