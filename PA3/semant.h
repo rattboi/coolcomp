@@ -27,7 +27,6 @@ private:
   void install_basic_classes();
   ostream& error_stream;
 
-  std::map<Symbol, Class_> class_lookup;
   std::map<Class_, std::set<Feature> > method_set;
   Class_ curr_class;
 
@@ -41,6 +40,7 @@ public:
   ClassTable(Classes);
 
   SymbolTable<Symbol, Symbol> *sym_tab;
+  std::map<Symbol, Class_> class_lookup;
   std::map<Class_, std::set<Class_> > inheritance_set;
 
   void   check_methods();
