@@ -456,6 +456,47 @@ void ClassTable::check_types_and_scopes() {
     rootClass->traverse(this);
 }
 
+// determines if class s1 is a subtype of class s2
+bool ClassTable::is_subtype(Symbol s1, Symbol s2) {
+
+    // everything is a subclass of Object
+    if (s2 == Object)
+        return true;
+
+    // blank expressions are subclasses of everything
+    if (s1 == No_class)
+        return true;
+
+    // the only class with parent No_class should be Object
+    while(s1 != No_class) {
+        if (s1 == s2)
+            return true;
+
+        s1 = class_lookup[s1]->get_parent();
+    }
+
+    return false;
+}
+
+// find least upper bound (closest common ancestor)
+Symbol ClassTable::get_LUB(Symbol s1, Symbol s2) {
+
+    // if s1 is subtype of s2, s2 is LUB
+    if (is_subtype(s1, s2)) return s2;
+
+    // if s2 is subtype of s1, s1 is LUB
+    if (is_subtype(s2, s1)) return s1;
+
+    // neither easy case, start searching for common ancestor
+    while (s1 != Object) {
+        s1 = class_lookup[s1]->get_parent();
+        if (is_subtype(s2, s1))
+            return s1;
+    }
+
+    return Object;
+}
+
 Symbol class__class::traverse(ClassTable* env) {
 
     env->sym_tab->enterscope();
@@ -508,16 +549,26 @@ Symbol method_class::traverse(ClassTable* env) {
     for (int i = formals->first(); formals->more(i); i = formals->next(i))
         formals->nth(i)->traverse(env);
 
-    expr->traverse(env);
+    Symbol expr_type = expr->traverse(env);
+
+    if (!env->is_subtype(expr_type, return_type)) {
+        env->semant_error(env->get_curr_class()) << "Return type (" << expr_type << ") isn't subtype of declared method return type (" << return_type << ")" << endl;
+    }
 
     env->sym_tab->exitscope();
     return return_type;
 }
 
 Symbol attr_class::traverse(ClassTable* env) {
-    init->traverse(env);
+    Symbol init_type;
+    init_type = init->traverse(env);
 
-    return type_decl;
+    if (!env->is_subtype(init_type, type_decl)) {
+        env->semant_error(env->get_curr_class()) << "Initialization type (" << init_type << ") isn't subtype of declared type (" << type_decl << ")" << endl;
+        return Object;
+    }
+
+    return init_type;
 }
 
 Symbol formal_class::traverse(ClassTable* env) {
@@ -577,8 +628,7 @@ Symbol cond_class::traverse(ClassTable* env) {
     Symbol then_type = then_exp->traverse(env);
     Symbol else_type = else_exp->traverse(env);
 
-    // this is wrong, but don't have LUB check yet
-    return set_type(then_type)->get_type();
+    return set_type(env->get_LUB(then_type, else_type))->get_type();
 }
 
 Symbol loop_class::traverse(ClassTable* env) {
@@ -744,7 +794,7 @@ Symbol isvoid_class::traverse(ClassTable* env) {
     return set_type(Bool)->get_type();
 }
 
-Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
+Symbol no_expr_class::traverse(ClassTable* env) { return No_class; }
 
 Symbol object_class::traverse(ClassTable* env) {
     Symbol *attr_type = env->sym_tab->lookup(name);

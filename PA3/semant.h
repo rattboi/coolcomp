@@ -47,6 +47,8 @@ public:
   void   check_types_and_scopes();
   Class_ get_curr_class();
   void   set_curr_class(Class_ c);
+  bool   is_subtype(Symbol s1, Symbol s2);
+  Symbol get_LUB(Symbol s1, Symbol s2);
 
   int errors() { return semant_errors; }
   ostream& semant_error();
