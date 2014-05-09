@@ -594,8 +594,17 @@ Symbol formal_class::traverse(ClassTable* env) {
 }
 
 Symbol branch_class::traverse(ClassTable* env) {
+    if (semant_debug) cout << "In branch expression" << endl;
+
+    env->sym_tab->enterscope();
+
+    Symbol *type = new Symbol;
+    *type = type_decl;
+    env->sym_tab->addid(name, type);
 
     expr->traverse(env);
+
+    env->sym_tab->exitscope();
 
     return type_decl;
 }
@@ -655,8 +664,16 @@ Symbol typcase_class::traverse(ClassTable* env) {
 
     Symbol type = expr->traverse(env);
 
-    for (int i = cases->first(); cases->more(i); i = cases->next(i))
-        cases->nth(i)->traverse(env);
+    std::set<Symbol> case_types;
+
+    for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
+        Symbol case_type = cases->nth(i)->traverse(env);
+        if (case_types.count(case_type)) {
+            env->semant_error(env->get_curr_class()) << "Duplicate branch in case" << endl;
+            return set_type(Object)->get_type();
+        }
+        case_types.insert(case_type);
+    }
 
     env->sym_tab->exitscope();
     return set_type(type)->get_type();
