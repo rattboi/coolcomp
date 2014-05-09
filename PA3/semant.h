@@ -9,6 +9,7 @@
 #include "list.h"
 #include <map>
 #include <set>
+#include <vector>
 
 #define TRUE 1
 #define FALSE 0
@@ -27,7 +28,6 @@ private:
   void install_basic_classes();
   ostream& error_stream;
 
-  std::map<Class_, std::set<Feature> > method_set;
   Class_ curr_class;
 
   void dump_inheritance();
@@ -42,6 +42,7 @@ public:
   SymbolTable<Symbol, Symbol> *sym_tab;
   std::map<Symbol, Class_> class_lookup;
   std::map<Class_, std::set<Class_> > inheritance_set;
+  std::map<Class_, std::set<Feature> > method_set;
 
   void   check_methods();
   void   check_types_and_scopes();
