@@ -467,6 +467,11 @@ bool ClassTable::is_subtype(Symbol s1, Symbol s2) {
     if (s1 == No_class)
         return true;
 
+    if (s2 == SELF_TYPE && s1 != SELF_TYPE) return false;
+
+    if (s1 == SELF_TYPE) s1 = curr_class->get_name();
+    if (s2 == SELF_TYPE) s2 = curr_class->get_name();
+    
     // the only class with parent No_class should be Object
     while(s1 != No_class) {
         if (s1 == s2)
@@ -560,6 +565,8 @@ Symbol method_class::traverse(ClassTable* env) {
 }
 
 Symbol attr_class::traverse(ClassTable* env) {
+    if (semant_debug) cout << "In attr " << name << endl;
+
     Symbol init_type;
     init_type = init->traverse(env);
 
@@ -824,6 +831,8 @@ Symbol isvoid_class::traverse(ClassTable* env) {
 Symbol no_expr_class::traverse(ClassTable* env) { return No_class; }
 
 Symbol object_class::traverse(ClassTable* env) {
+    if (name == self) return set_type(SELF_TYPE)->get_type();
+
     Symbol *attr_type = env->sym_tab->lookup(name);
 
     if (attr_type == NULL) {
