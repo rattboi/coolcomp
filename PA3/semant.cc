@@ -573,12 +573,17 @@ Symbol attr_class::traverse(ClassTable* env) {
 
 Symbol formal_class::traverse(ClassTable* env) {
     if (env->sym_tab->probe(name)) {
-        env->semant_error(env->get_curr_class()) << "Formal is multiply defined" << endl;
+        env->semant_error(env->get_curr_class()) << "Formal argument is multiply defined" << endl;
         return set_type(Object)->get_type();
     }
 
     if (name == self) {
-        env->semant_error(env->get_curr_class()) << "Formal can't be named self" << endl;
+        env->semant_error(env->get_curr_class()) << "Formal argument can't be named self" << endl;
+        return set_type(Object)->get_type();
+    }
+
+    if (type_decl == SELF_TYPE) {
+        env->semant_error(env->get_curr_class()) << "Formal argument can't be of type SELF_TYPE" << endl;
         return set_type(Object)->get_type();
     }
 
