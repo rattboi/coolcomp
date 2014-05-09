@@ -104,7 +104,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         if (name == SELF_TYPE)
             semant_error(filename, n) << "Can't name class SELF_TYPE" << endl;
 
-        if (name == Main) seen_Main = true; 
+        if (name == Main) seen_Main = true;
 
         if (parent == Bool || parent == Int || parent == SELF_TYPE || parent == Str)
             semant_error(filename, n) << "Can't inherit from " << parent << endl;
@@ -132,7 +132,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         }
     }
 
-    if (semant_debug) dump_inheritance(); 
+    if (semant_debug) dump_inheritance();
 
     for (std::map<Class_,std::set<Class_> >::iterator it_p = inheritance_set.begin(); it_p != inheritance_set.end() && !semant_errors; it_p++) {
         if (semant_debug)
@@ -347,7 +347,7 @@ bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
         if (it_f->get_name() == f->get_name()) {
             if (semant_debug) error_stream << "Overridden method!" << endl;
 
-            // check that return type matches parent 
+            // check that return type matches parent
             if (it_f->get_type() != f->get_type()) {
                 semant_error(c) << "Return type of overridden function doesn't match parent" << endl;
                 return false;
@@ -360,13 +360,13 @@ bool ClassTable::check_method_type_sig(Class_ c, Feature f) {
                 semant_error(c) << "Overridden function is not the same arity as parent" << endl;
                 return false;
             }
-            
+
             // check that types on arguments match parent
             for (int i = it_formals->first(); it_formals->more(i); i = it_formals->next(i)) {
                 if (it_formals->nth(i)->get_type() != f_formals->nth(i)->get_type()) {
                     semant_error(c) << "In redefined method " << it_formals->nth(i)->get_name()
                                     << ", parameter type " << f_formals->nth(i)->get_type()
-                                    <<    " is different from original type " << it_formals->nth(i)->get_type() 
+                                    <<    " is different from original type " << it_formals->nth(i)->get_type()
                                     << endl;
                     return false;
                 }
@@ -407,7 +407,7 @@ void ClassTable::check_methods_recur(Class_ c, Class_ p) {
         Feature f = features->nth(i);
 
         if (semant_debug) {
-            error_stream << "  Feature: " << endl; 
+            error_stream << "  Feature: " << endl;
             error_stream << "    Type : " << (f->is_method() ? "Method" : "Attr") << endl;
             error_stream << "    Name : " << f->get_name() << endl;
         }
@@ -429,11 +429,11 @@ void ClassTable::check_methods_recur(Class_ c, Class_ p) {
     if (c->get_name() == Main) {
         bool main_in_Main = false;
 
-        for (std::set<Feature>::iterator it_f = curr_method_set.begin(); it_f != curr_method_set.end(); it_f++) 
+        for (std::set<Feature>::iterator it_f = curr_method_set.begin(); it_f != curr_method_set.end(); it_f++)
             if ((*it_f)->get_name() == main_meth)
                 main_in_Main = true;
 
-        if (!main_in_Main) 
+        if (!main_in_Main)
             semant_error(c) << "No main method in Main class" << endl;
     }
 
@@ -488,19 +488,19 @@ Symbol class__class::traverse(ClassTable* env) {
 
     // now that this class's attributes are added to scope, traverse all the featuers and annotate/type-check
     for (int i = f_list->first(); f_list->more(i); i = f_list->next(i)) f_list->nth(i)->traverse(env);
-    
+
     // recurse through children of current class, entering a new scope on each
     std::set<Class_> child_set = env->inheritance_set[this];
     for (std::set<Class_>::iterator it_c = child_set.begin(); it_c != child_set.end(); it_c++) {
         env->set_curr_class(*it_c);
         (*it_c)->traverse(env);
     }
-    
+
     env->sym_tab->exitscope();
     return Object;
 }
 
-Symbol method_class::traverse(ClassTable* env) { 
+Symbol method_class::traverse(ClassTable* env) {
     env->sym_tab->enterscope();
 
     if (semant_debug) cout << "In method " << name << endl;
@@ -516,19 +516,19 @@ Symbol method_class::traverse(ClassTable* env) {
 
 Symbol attr_class::traverse(ClassTable* env) {
     init->traverse(env);
-    
+
     return type_decl;
 }
 
-Symbol formal_class::traverse(ClassTable* env) { 
+Symbol formal_class::traverse(ClassTable* env) {
     if (env->sym_tab->probe(name)) {
         env->semant_error(env->get_curr_class()) << "Formal is multiply defined" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     if (name == self) {
         env->semant_error(env->get_curr_class()) << "Formal can't be named self" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     Symbol *type = new Symbol;
@@ -542,16 +542,16 @@ Symbol branch_class::traverse(ClassTable* env) {
     expr->traverse(env);
 
     return type_decl;
-} 
+}
 
-Symbol assign_class::traverse(ClassTable* env) { 
+Symbol assign_class::traverse(ClassTable* env) {
     if (semant_debug) cout << "In assign expression" << endl;
-    
-    Symbol *attr_type = env->sym_tab->lookup(name); 
+
+    Symbol *attr_type = env->sym_tab->lookup(name);
 
     if (attr_type == NULL) {
         env->semant_error(env->get_curr_class()) << "Assigning to undefined attribute" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     Symbol expr_type;
@@ -559,7 +559,7 @@ Symbol assign_class::traverse(ClassTable* env) {
 
     if (expr_type != (*attr_type)) {
         env->semant_error(env->get_curr_class()) << "Attempting to assign type " << expr_type << " to attribute with type " << (*attr_type) << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     return set_type(*attr_type)->get_type();
@@ -571,7 +571,7 @@ Symbol dispatch_class::traverse(ClassTable* env) { return Object; }
 Symbol cond_class::traverse(ClassTable* env) {
     if (pred->traverse(env) != Bool) {
         env->semant_error(env->get_curr_class()) << "Predicate of IF is not Bool" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     Symbol then_type = then_exp->traverse(env);
@@ -579,12 +579,12 @@ Symbol cond_class::traverse(ClassTable* env) {
 
     // this is wrong, but don't have LUB check yet
     return set_type(then_type)->get_type();
-} 
+}
 
 Symbol loop_class::traverse(ClassTable* env) {
     if (pred->traverse(env) != Bool) {
         env->semant_error(env->get_curr_class()) << "Predicate of LOOP is not Bool" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
 
     body->traverse(env);
@@ -605,15 +605,15 @@ Symbol typcase_class::traverse(ClassTable* env) {
 
     env->sym_tab->exitscope();
     return set_type(type)->get_type();
-} 
+}
 
-Symbol block_class::traverse(ClassTable* env) { 
+Symbol block_class::traverse(ClassTable* env) {
     if (semant_debug) cout << "In block expression" << endl;
     Symbol expr_type;
     for (int i = body->first(); body->more(i); i = body->next(i)) {
         expr_type = body->nth(i)->traverse(env);
     }
-    return set_type(expr_type)->get_type(); 
+    return set_type(expr_type)->get_type();
 }
 
 Symbol let_class::traverse(ClassTable* env) { return Object; }
@@ -621,139 +621,139 @@ Symbol let_class::traverse(ClassTable* env) { return Object; }
 Symbol plus_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of Add is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of Add is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Int)->get_type(); 
+    return set_type(Int)->get_type();
 }
 
 Symbol sub_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of Sub is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of Sub is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Int)->get_type(); 
+    return set_type(Int)->get_type();
 }
 
 Symbol mul_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of Mul is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of Mul is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Int)->get_type(); 
+    return set_type(Int)->get_type();
 }
 
 Symbol divide_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of Div is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of Div is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Int)->get_type(); 
+    return set_type(Int)->get_type();
 }
 
 Symbol neg_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of Neg is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Int)->get_type(); 
+    return set_type(Int)->get_type();
 }
 
-Symbol lt_class::traverse(ClassTable* env) { 
+Symbol lt_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of LT is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of LT is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Bool)->get_type(); 
+    return set_type(Bool)->get_type();
 }
 
-Symbol eq_class::traverse(ClassTable* env) { 
+Symbol eq_class::traverse(ClassTable* env) {
     Symbol e1_type = e1->traverse(env);
     Symbol e2_type = e2->traverse(env);
 
     bool type_ok = true;
 
     if (e1_type == Str || e2_type == Str)   type_ok = (e1_type == e2_type);
-    if (e1_type == Int || e2_type == Int)   type_ok = (e1_type == e2_type); 
+    if (e1_type == Int || e2_type == Int)   type_ok = (e1_type == e2_type);
     if (e1_type == Bool || e2_type == Bool) type_ok = (e1_type == e2_type);
 
     if (!type_ok) {
         env->semant_error(env->get_curr_class()) << "Expr 1 is type " << e1_type << " and Expr 2 is not in EQ" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Bool)->get_type(); 
+    return set_type(Bool)->get_type();
 }
 
 Symbol leq_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of EQ is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
     if (e2->traverse(env) != Int) {
         env->semant_error(env->get_curr_class()) << "Expr 2 of EQ is not Int" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Bool)->get_type(); 
+    return set_type(Bool)->get_type();
 }
 
-Symbol comp_class::traverse(ClassTable* env) { 
+Symbol comp_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Bool) {
         env->semant_error(env->get_curr_class()) << "Expr 1 of COMP is not Bool" << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(Bool)->get_type(); 
+    return set_type(Bool)->get_type();
 }
 
-Symbol int_const_class::traverse(ClassTable* env) { 
-    return set_type(Int)->get_type(); 
+Symbol int_const_class::traverse(ClassTable* env) {
+    return set_type(Int)->get_type();
 }
 
-Symbol bool_const_class::traverse(ClassTable* env) { 
-    return set_type(Bool)->get_type(); 
+Symbol bool_const_class::traverse(ClassTable* env) {
+    return set_type(Bool)->get_type();
 }
 
-Symbol string_const_class::traverse(ClassTable* env) { 
-    return set_type(Str)->get_type(); 
+Symbol string_const_class::traverse(ClassTable* env) {
+    return set_type(Str)->get_type();
 }
 
-Symbol new__class::traverse(ClassTable* env) { 
+Symbol new__class::traverse(ClassTable* env) {
     return set_type(type_name)->get_type();
 }
 
-Symbol isvoid_class::traverse(ClassTable* env) { 
+Symbol isvoid_class::traverse(ClassTable* env) {
     e1->traverse(env);
     return set_type(Bool)->get_type();
 }
 
 Symbol no_expr_class::traverse(ClassTable* env) { return Object; }
 
-Symbol object_class::traverse(ClassTable* env) { 
-    Symbol *attr_type = env->sym_tab->lookup(name); 
+Symbol object_class::traverse(ClassTable* env) {
+    Symbol *attr_type = env->sym_tab->lookup(name);
 
     if (attr_type == NULL) {
         env->semant_error(env->get_curr_class()) << "reference to undefined object " << endl;
-        return set_type(Object)->get_type(); 
+        return set_type(Object)->get_type();
     }
-    return set_type(*attr_type)->get_type(); 
+    return set_type(*attr_type)->get_type();
 }
 
 /*   This is the entry point to the semantic checker.
