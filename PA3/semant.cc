@@ -809,7 +809,30 @@ Symbol block_class::traverse(ClassTable* env) {
     return set_type(expr_type)->get_type();
 }
 
-Symbol let_class::traverse(ClassTable* env) { return Object; }
+Symbol let_class::traverse(ClassTable* env) {
+   
+    if (identifier == self) {
+        env->semant_error(env->get_curr_class()) << "Let binding cannot be named 'self'" << endl;
+        return set_type(Object)->get_type();
+    }
+
+    Symbol init_type = init->traverse(env);
+
+    if (!env->is_subtype(init_type, type_decl)) {
+        env->semant_error(env->get_curr_class()) << "Initialization type is not a subtype of declared type" << endl;
+        return set_type(Object)->get_type();
+    }
+
+    env->sym_tab->enterscope();
+    Symbol *let_type = new Symbol;
+    *let_type = type_decl;
+
+    env->sym_tab->addid(identifier, let_type);
+    set_type(body->traverse(env));
+    env->sym_tab->exitscope();
+
+    return get_type();
+} 
 
 Symbol plus_class::traverse(ClassTable* env) {
     if (e1->traverse(env) != Int) {
