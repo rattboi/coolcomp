@@ -616,6 +616,12 @@ void CgenClassTable::code_constants()
   code_bools(boolclasstag);
 }
 
+void CgenClassTable::code_prototypes() {
+
+  for(List<CgenNode> *l = nds; l; l = l->tl())
+      l->hd()->code_prototype();
+
+}
 
 CgenClassTable::CgenClassTable(Classes classes, ostream& s) : nds(NULL) , str(s)
 {
@@ -628,6 +634,8 @@ CgenClassTable::CgenClassTable(Classes classes, ostream& s) : nds(NULL) , str(s)
    install_basic_classes();
    install_classes(classes);
    build_inheritance_tree();
+
+   root()->traverse();
 
    code();
    exitscope();
@@ -649,14 +657,14 @@ void CgenClassTable::install_basic_classes()
 // prim_slot is a class known to the code generator.
 //
   addid(No_class,
-	new CgenNode(class_(No_class,No_class,nil_Features(),filename),
-			    Basic,this));
+    new CgenNode(class_(No_class,No_class,nil_Features(),filename),
+                Basic,this));
   addid(SELF_TYPE,
-	new CgenNode(class_(SELF_TYPE,No_class,nil_Features(),filename),
-			    Basic,this));
+    new CgenNode(class_(SELF_TYPE,No_class,nil_Features(),filename),
+                Basic,this));
   addid(prim_slot,
-	new CgenNode(class_(prim_slot,No_class,nil_Features(),filename),
-			    Basic,this));
+    new CgenNode(class_(prim_slot,No_class,nil_Features(),filename),
+                Basic,this));
 
 //
 // The Object class has no parent class. Its methods are
@@ -670,13 +678,13 @@ void CgenClassTable::install_basic_classes()
   install_class(
    new CgenNode(
     class_(Object,
-	   No_class,
-	   append_Features(
+       No_class,
+       append_Features(
            append_Features(
            single_Features(method(cool_abort, nil_Formals(), Object, no_expr())),
            single_Features(method(type_name, nil_Formals(), Str, no_expr()))),
            single_Features(method(copy, nil_Formals(), SELF_TYPE, no_expr()))),
-	   filename),
+       filename),
     Basic,this));
 
 //
@@ -699,7 +707,7 @@ void CgenClassTable::install_basic_classes()
                         SELF_TYPE, no_expr()))),
             single_Features(method(in_string, nil_Formals(), Str, no_expr()))),
             single_Features(method(in_int, nil_Formals(), Int, no_expr()))),
-	   filename),
+       filename),
     Basic,this));
 
 //
@@ -709,9 +717,9 @@ void CgenClassTable::install_basic_classes()
    install_class(
     new CgenNode(
      class_(Int,
-	    Object,
+        Object,
             single_Features(attr(val, prim_slot, no_expr())),
-	    filename),
+        filename),
      Basic,this));
 
 //
@@ -733,26 +741,25 @@ void CgenClassTable::install_basic_classes()
    install_class(
     new CgenNode(
       class_(Str,
-	     Object,
+         Object,
              append_Features(
              append_Features(
              append_Features(
              append_Features(
              single_Features(attr(val, Int, no_expr())),
-            single_Features(attr(str_field, prim_slot, no_expr()))),
-            single_Features(method(length, nil_Formals(), Int, no_expr()))),
-            single_Features(method(concat,
-				   single_Formals(formal(arg, Str)),
-				   Str,
-				   no_expr()))),
-	    single_Features(method(substr,
-				   append_Formals(single_Formals(formal(arg, Int)),
-						  single_Formals(formal(arg2, Int))),
-				   Str,
-				   no_expr()))),
-	     filename),
-        Basic,this));
-
+             single_Features(attr(str_field, prim_slot, no_expr()))),
+             single_Features(method(length, nil_Formals(), Int, no_expr()))),
+             single_Features(method(concat,
+                   single_Formals(formal(arg, Str)),
+                   Str,
+                   no_expr()))),
+             single_Features(method(substr,
+                   append_Formals(single_Formals(formal(arg, Int)),
+                          single_Formals(formal(arg2, Int))),
+                   Str,
+                   no_expr()))),
+         filename),
+         Basic,this));
 }
 
 // CgenClassTable::install_class
@@ -815,7 +822,53 @@ void CgenNode::set_parentnd(CgenNodeP p)
   parentnd = p;
 }
 
+void CgenNode::count_Features() {
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    if (features->nth(i)->is_method()) {
+      Symbol name = features->nth(i)->get_name();
 
+      dispatch_table_size++;
+      method_list = new class_method_list(name, method_list);
+      method_table.addid(name, get_name());
+    } else {
+      object_size++;
+    }
+  }
+}
+
+void CgenNode::traverse() {
+
+  class_method_list *method_list_head = new class_method_list( NULL, NULL);
+  method_list = method_list_head;
+
+  if ( get_name() != Object)
+  {
+    dispatch_table_size = parentnd->dispatch_table_size;
+    object_size = parentnd->object_size;
+
+    this->method_table = parentnd->method_table;
+
+    class_method_list *inhe_methods = parentnd->method_list;
+    while ( inhe_methods) {
+      method_list->set_tl( new class_method_list( inhe_methods->hd()));
+      method_list = method_list->tl();
+      inhe_methods = inhe_methods->tl();
+    }
+  }
+  this->method_table.enterscope();
+
+  count_Features();
+
+  method_list = method_list_head->tl();
+
+  for ( List<CgenNode> *leg = children; leg; leg = leg->tl()) {
+    leg->hd()->traverse();
+  }
+}
+
+void CgenNode::code_prototype() {
+
+}    
 
 void CgenClassTable::code()
 {
@@ -830,6 +883,8 @@ void CgenClassTable::code()
 
 //                 Add your code to emit
 //                   - prototype objects
+  if (cgen_debug) cout << "coding prototypes" << endl;
+  code_prototypes();
 //                   - class_nameTab
 //                   - dispatch tables
 //
@@ -861,7 +916,9 @@ CgenNode::CgenNode(Class_ nd, Basicness bstatus, CgenClassTableP ct) :
    class__class((const class__class &) *nd),
    parentnd(NULL),
    children(NULL),
-   basic_status(bstatus)
+   basic_status(bstatus),
+   object_size(0),
+   dispatch_table_size(0)
 {
    stringtable.add_string(name->get_string());          // Add class name to string table
 }

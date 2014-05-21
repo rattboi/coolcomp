@@ -53,6 +53,8 @@ public:
 #ifdef Feature_EXTRAS
    Feature_EXTRAS
 #endif
+   virtual bool is_method() = 0;
+   virtual Symbol get_name() = 0;
 };
 
 
@@ -194,6 +196,8 @@ public:
 #ifdef method_EXTRAS
    method_EXTRAS
 #endif
+   bool is_method()   { return true; }
+   Symbol get_name()  { return name; }
 };
 
 
@@ -218,6 +222,8 @@ public:
 #ifdef attr_EXTRAS
    attr_EXTRAS
 #endif
+   bool is_method()   { return false; }
+   Symbol get_name()  { return name ; }
 };
 
 
